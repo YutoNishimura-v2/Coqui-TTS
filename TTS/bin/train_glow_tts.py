@@ -31,6 +31,9 @@ from TTS.utils.generic_utils import (KeepAverage, count_parameters,
 from TTS.utils.radam import RAdam
 from TTS.utils.training import NoamLR, setup_torch_training_env
 
+from TTS.speaker_encoder.model import SpeakerEncoder
+from TTS.utils.io import load_config
+
 use_cuda, num_gpus = setup_torch_training_env(True, False)
 
 
@@ -156,7 +159,7 @@ def data_depended_init(data_loader, model):
 
 
 def train(data_loader, model, criterion, optimizer, scheduler,
-          ap, global_step, epoch):
+          ap, global_step, epoch, use_random_speaker_data_augmentation=False):
 
     model.train()
     epoch_time = 0
@@ -183,12 +186,18 @@ def train(data_loader, model, criterion, optimizer, scheduler,
 
         # forward pass model
         with torch.cuda.amp.autocast(enabled=c.mixed_precision):
-            z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur = model.forward(
-                text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_c)
-
-            # compute loss
-            loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths,
-                                  o_dur_log, o_total_dur, text_lengths)
+            if use_random_speaker_data_augmentation:
+                z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur, y, g = model.forward(
+                    text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_c, use_random_speaker_data_augmentation=True)
+                # compute loss
+                loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths,
+                                    o_dur_log, o_total_dur, text_lengths, y, g)
+            else:
+                z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur = model.forward(
+                    text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_c)
+                # compute loss
+                loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths,
+                                    o_dur_log, o_total_dur, text_lengths)
 
         # backward pass with loss scaling
         if c.mixed_precision:
@@ -318,7 +327,7 @@ def train(data_loader, model, criterion, optimizer, scheduler,
 
 
 @torch.no_grad()
-def evaluate(data_loader, model, criterion, ap, global_step, epoch):
+def evaluate(data_loader, model, criterion, ap, global_step, epoch, use_random_speaker_data_augmentation=False):
     model.eval()
     epoch_time = 0
     keep_avg = KeepAverage()
@@ -331,13 +340,22 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
             text_input, text_lengths, mel_input, mel_lengths, speaker_c,\
                 _, _, attn_mask, _ = format_data(data)
 
-            # forward pass model
-            z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur = model.forward(
-                text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_c)
+            if use_random_speaker_data_augmentation:
+                # forward pass model
+                z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur, y, speaker_c = model.forward(
+                    text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_c, use_random_speaker_data_augmentation=True)
 
-            # compute loss
-            loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths,
-                                  o_dur_log, o_total_dur, text_lengths)
+                # compute loss
+                loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths,
+                                    o_dur_log, o_total_dur, text_lengths, y, speaker_c)
+            else:
+                # forward pass model
+                z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur = model.forward(
+                    text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_c)
+
+                # compute loss
+                loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths,
+                                    o_dur_log, o_total_dur, text_lengths)
 
             # step time
             step_time = time.time() - start_time
@@ -374,7 +392,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
         if args.rank == 0:
             # Diagnostic visualizations
             # direct pass on model for spec predictions
-            target_speaker = None if speaker_c is None else speaker_c[:1]
+            target_speaker = None if speaker_c is None else speaker_c[:1].squeeze(-1)
             if hasattr(model, 'module'):
                 spec_pred, *_ = model.module.inference(text_input[:1], text_lengths[:1], g=target_speaker)
             else:
@@ -420,8 +438,13 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
         print(" | > Synthesizing test sentences")
         if c.use_speaker_embedding:
             if c.use_external_speaker_embedding_file:
-                speaker_embedding = speaker_mapping[list(speaker_mapping.keys())[randrange(len(speaker_mapping)-1)]]['embedding']
-                speaker_id = None
+                if use_random_speaker_data_augmentation:
+                    # get on random speaker
+                    speaker_embedding = speaker_c[0].detach().cpu().numpy().flatten().tolist()
+                    speaker_id = None
+                else:
+                    speaker_embedding = speaker_mapping[list(speaker_mapping.keys())[randrange(len(speaker_mapping)-1)]]['embedding']
+                    speaker_id = None
             else:
                 speaker_id = 0
                 speaker_embedding = None
@@ -494,10 +517,26 @@ def main(args):  # pylint: disable=redefined-outer-name
     # parse speakers
     num_speakers, speaker_embedding_dim, speaker_mapping = parse_speakers(c, args, meta_data_train, OUT_PATH)
 
+    if "use_random_speaker_data_augmentation" in c.keys():
+        use_random_speaker_data_augmentation = True
+        se_c = load_config(c.speaker_encoder['config_path'])
+        if se_c.audio['sample_rate'] != c.audio['sample_rate']:
+            raise RuntimeError("ERROR: The sample rate and other audios parameters of the speaker encoder and the TTS model must be the same !!")
+
+        speaker_encoder = SpeakerEncoder(**se_c.model)
+        speaker_encoder.load_state_dict(torch.load(c.speaker_encoder['checkpoint_path'])['model'])
+        speaker_encoder.eval()
+        if use_cuda:
+            speaker_encoder.cuda()
+        print("\n > Speaker Encoder has {} parameters \n".format(count_parameters(speaker_encoder)), flush=True)
+    else:
+        use_random_speaker_data_augmentation = False
+        speaker_encoder = None
+
     # setup model
     model = setup_model(num_chars, num_speakers, c, speaker_embedding_dim=speaker_embedding_dim)
     optimizer = RAdam(model.parameters(), lr=c.lr, weight_decay=0, betas=(0.9, 0.98), eps=1e-9)
-    criterion = GlowTTSLoss()
+    criterion = GlowTTSLoss(use_random_speaker_data_augmentation=use_random_speaker_data_augmentation, speaker_encoder=speaker_encoder)
 
     if args.restore_path:
         print(f" > Restoring from {os.path.basename(args.restore_path)} ...")
@@ -562,12 +601,13 @@ def main(args):  # pylint: disable=redefined-outer-name
     model = data_depended_init(train_loader, model)
     for epoch in range(0, c.epochs):
         c_logger.print_epoch_start(epoch, c.epochs)
+        eval_avg_loss_dict = evaluate(eval_loader, model, criterion, ap,
+                                      global_step, epoch, use_random_speaker_data_augmentation=use_random_speaker_data_augmentation)
         train_avg_loss_dict, global_step = train(train_loader, model,
                                                  criterion, optimizer,
                                                  scheduler, ap, global_step,
-                                                 epoch)
-        eval_avg_loss_dict = evaluate(eval_loader, model, criterion, ap,
-                                      global_step, epoch)
+                                                 epoch, use_random_speaker_data_augmentation=use_random_speaker_data_augmentation)
+        
         c_logger.print_epoch_end(epoch, eval_avg_loss_dict)
         target_loss = train_avg_loss_dict['avg_loss']
         if c.run_eval:

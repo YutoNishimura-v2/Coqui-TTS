@@ -37,14 +37,25 @@ parser.add_argument(
     default='',
     help='Target dataset to pick a processor from TTS.tts.dataset.preprocess. Necessary to create a speakers.json file.'
 )
+
 parser.add_argument(
-    '--use_cuda', type=bool, help='flag to set cuda.', default=False
+    '--meta_file_train', type=str, help='path for metada file.', default=False
+)
+
+parser.add_argument(
+    '--save_npy', type=bool, help='flag to set save_npy.', default=False
+)
+parser.add_argument(
+    '--save_json', type=bool, help='flag to set save_json.', default=True
+)
+
+parser.add_argument(
+    '--use_cuda', type=bool, help='flag to set cuda.', default=True
 )
 parser.add_argument(
     '--separator', type=str, help='Separator used in file if CSV is passed for data_path', default='|'
 )
 args = parser.parse_args()
-
 
 c = load_config(args.config_path)
 ap = AudioProcessor(**c['audio'])
@@ -59,7 +70,7 @@ if args.target_dataset != '':
         {
             "name": args.target_dataset,
             "path": args.data_path,
-            "meta_file_train": None,
+            "meta_file_train": args.meta_file_train,
             "meta_file_val": None
         },
     ]
@@ -115,16 +126,18 @@ for idx, wav_file in enumerate(tqdm(wav_files)):
         mel_spec = mel_spec.cuda()
     embedd = model.compute_embedding(mel_spec)
     embedd = embedd.detach().cpu().numpy()
-    np.save(output_files[idx], embedd)
+  
+    if args.save_npy:
+        np.save(output_files[idx], embedd)
 
-    if args.target_dataset != '':
+    if args.target_dataset != '' or args.save_json:
         # create speaker_mapping if target dataset is defined
         wav_file_name = os.path.basename(wav_file)
         speaker_mapping[wav_file_name] = {}
         speaker_mapping[wav_file_name]['name'] = speaker_name
         speaker_mapping[wav_file_name]['embedding'] = embedd.flatten().tolist()
 
-if args.target_dataset != '':
+if args.target_dataset != '' or args.save_json:
     # save speaker_mapping if target dataset is defined
     mapping_file_path = os.path.join(args.output_path, 'speakers.json')
     save_speaker_mapping(args.output_path, speaker_mapping)

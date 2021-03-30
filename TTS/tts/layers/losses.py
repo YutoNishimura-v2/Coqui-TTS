@@ -252,6 +252,23 @@ class Huber(nn.Module):
         return torch.nn.functional.smooth_l1_loss(
             x * mask, y * mask, reduction='sum') / mask.sum()
 
+class SpeakerEncoderLoss(torch.nn.Module):
+    def __init__(self, speaker_encoder_model, beta=2):
+        super(SpeakerEncoderLoss, self).__init__()
+        self.speaker_encoder_model = speaker_encoder_model
+        self.beta = beta
+
+    def Lcycle(self, expected_embedding, output_embedding):
+        ''' 
+        Reference: https://arxiv.org/pdf/1802.06984.pdf
+        '''
+        return torch.abs(expected_embedding-output_embedding).pow(2).sum()
+
+    def forward(self, embeddings, decoder_output, output_lens):
+        output_embedding = self.speaker_encoder_model.batch_compute_embedding(decoder_output.transpose(1, 2), output_lens)
+        # compute and return loss
+        loss = self.beta * self.Lcycle(embeddings.squeeze(-1), output_embedding)
+        return loss
 
 ########################
 # MODEL LOSS LAYERS
@@ -397,12 +414,17 @@ class TacotronLoss(torch.nn.Module):
 
 
 class GlowTTSLoss(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, use_random_speaker_data_augmentation=False, speaker_encoder=None):
         super().__init__()
         self.constant_factor = 0.5 * math.log(2 * math.pi)
+        self.use_random_speaker_data_augmentation = use_random_speaker_data_augmentation
+        if use_random_speaker_data_augmentation:
+            self.se_loss = SpeakerEncoderLoss(speaker_encoder)
+        else:
+            self.se_loss = None
 
     def forward(self, z, means, scales, log_det, y_lengths, o_dur_log,
-                o_attn_dur, x_lengths):
+                o_attn_dur, x_lengths, y=None, g=None):
         return_dict = {}
         # flow loss - neg log likelihood
         pz = torch.sum(scales) + 0.5 * torch.sum(
@@ -417,6 +439,11 @@ class GlowTTSLoss(torch.nn.Module):
         return_dict['loss'] = log_mle + loss_dur
         return_dict['log_mle'] = log_mle
         return_dict['loss_dur'] = loss_dur
+
+        if self.use_random_speaker_data_augmentation:
+            loss_se = self.se_loss(g, y, y_lengths)
+            return_dict['loss_se'] = loss_se
+            return_dict['loss'] += loss_se
 
         # check if any loss is NaN
         for key, loss in return_dict.items():

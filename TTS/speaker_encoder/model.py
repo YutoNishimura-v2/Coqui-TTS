@@ -86,7 +86,8 @@ class SpeakerEncoder(nn.Module):
             if embed is None:
                 embed = self.inference(frames)
             else:
-                embed += self.inference(frames)
+                aux_emb = self.inference(frames)
+                embed += aux_emb
         return embed / cur_iter
 
     def batch_compute_embedding(self, x, seq_lens, num_frames=160, overlap=0.5):
@@ -94,19 +95,21 @@ class SpeakerEncoder(nn.Module):
         Generate embeddings for a batch of utterances
         x: BxTxD
         """
-        num_overlap = num_frames * overlap
+        num_overlap = int(num_frames * overlap)
         max_len = x.shape[1]
         embed = None
-        num_iters = seq_lens / (num_frames - num_overlap)
+        # +1 because this divison is 0 when len < num_overlap
+        num_iters = (seq_lens // (num_frames - num_overlap))+1
         cur_iter = 0
         for offset in range(0, max_len, num_frames - num_overlap):
             cur_iter += 1
-            end_offset = min(x.shape[1], offset + num_frames)
+            end_offset = min(max_len, offset + num_frames)
             frames = x[:, offset:end_offset]
             if embed is None:
                 embed = self.inference(frames)
             else:
-                embed[cur_iter <= num_iters, :] += self.inference(
-                    frames[cur_iter <= num_iters, :, :]
+                idxs = (cur_iter <= num_iters)
+                embed[idxs, :] += self.inference(
+                    frames[idxs, :, :]
                 )
-        return embed / num_iters
+        return torch.div(embed, num_iters.unsqueeze(-1))

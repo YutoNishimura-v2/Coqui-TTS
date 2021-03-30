@@ -129,7 +129,7 @@ class GlowTts(nn.Module):
         o_attn_dur = torch.log(1 + torch.sum(attn, -1)) * x_mask
         return y_mean, y_log_scale, o_attn_dur
 
-    def forward(self, x, x_lengths, y=None, y_lengths=None, attn=None, g=None):
+    def forward(self, x, x_lengths, y=None, y_lengths=None, attn=None, g=None, use_random_speaker_data_augmentation=False):
         """
         Shapes:
             x: [B, T]
@@ -176,6 +176,17 @@ class GlowTts(nn.Module):
         y_mean, y_log_scale, o_attn_dur = self.compute_outputs(
             attn, o_mean, o_log_scale, x_mask)
         attn = attn.squeeze(1).permute(0, 2, 1)
+
+        if use_random_speaker_data_augmentation:
+            # generate a random embeddings
+            g = torch.normal(mean=0, std=1, size=g.shape).to(g.device)
+            # L2 norm
+            g = torch.nn.functional.normalize(g, p=2, dim=1)
+            # invert decoder for get the spectrogram
+            y, _ = self.decoder(z, y_mask, g=g, reverse=True)
+            
+            return z, logdet, y_mean, y_log_scale, attn, o_dur_log, o_attn_dur, y, g
+
         return z, logdet, y_mean, y_log_scale, attn, o_dur_log, o_attn_dur
 
     @torch.no_grad()
