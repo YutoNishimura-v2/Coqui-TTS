@@ -70,6 +70,14 @@ class SpeakerEncoder(nn.Module):
             d = torch.nn.functional.normalize(d, p=2, dim=1)
         return d
 
+    def inference_grad(self, x):
+        d = self.layers.forward(x)
+        if self.use_lstm_with_projection:
+            d = torch.nn.functional.normalize(d[:, -1], p=2, dim=1)
+        else:
+            d = torch.nn.functional.normalize(d, p=2, dim=1)
+        return d
+    
     def compute_embedding(self, x, num_frames=160, overlap=0.5):
         """
         Generate embeddings for a batch of utterances
@@ -95,21 +103,38 @@ class SpeakerEncoder(nn.Module):
         Generate embeddings for a batch of utterances
         x: BxTxD
         """
+        # it's prevent the use of padding during compute the speaker embedding
+        num_frames = min(torch.min(seq_lens), num_frames)
+
         num_overlap = int(num_frames * overlap)
         max_len = x.shape[1]
         embed = None
-        # +1 because this divison is 0 when len < num_overlap
-        num_iters = (seq_lens // (num_frames - num_overlap))+1
+
+        step = num_frames - num_overlap
+
+        num_iters = seq_lens // step
         cur_iter = 0
-        for offset in range(0, max_len, num_frames - num_overlap):
+        for offset in range(0, max_len-step, step):
             cur_iter += 1
             end_offset = min(max_len, offset + num_frames)
             frames = x[:, offset:end_offset]
             if embed is None:
-                embed = self.inference(frames)
+                embed = self.inference_grad(frames)
             else:
                 idxs = (cur_iter <= num_iters)
-                embed[idxs, :] += self.inference(
+                embed[idxs, :] += self.inference_grad(
                     frames[idxs, :, :]
                 )
+
         return torch.div(embed, num_iters.unsqueeze(-1))
+
+    def compute_embedding_fast(self, x, seq_lens, num_frames=160):
+        """
+        Generate embeddings for a batch of utterances
+        x: BxTxD
+        """
+        # not compute embeddings with zero padding
+        max_len = min(seq_lens.min(), num_frames)
+        frames = x[:, :max_len, :]
+        emb =  self.inference_grad(frames)
+        return emb

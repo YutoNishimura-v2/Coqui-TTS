@@ -159,8 +159,8 @@ def data_depended_init(data_loader, model):
 
 
 def train(data_loader, model, criterion, optimizer, scheduler,
-          ap, global_step, epoch, use_random_speaker_data_augmentation=False):
-
+          ap, global_step, epoch, use_random_speaker_data_augmentation=False, debug=False):
+    global speaker_encoder
     model.train()
     epoch_time = 0
     keep_avg = KeepAverage()
@@ -172,6 +172,10 @@ def train(data_loader, model, criterion, optimizer, scheduler,
     end_time = time.time()
     c_logger.print_train_start()
     scaler = torch.cuda.amp.GradScaler() if c.mixed_precision else None
+    if debug:
+        speaker_encoder_params = speaker_encoder.parameters()
+        decoder_params = model.decoder.named_parameters()
+
     for num_iter, data in enumerate(data_loader):
         start_time = time.time()
 
@@ -183,22 +187,19 @@ def train(data_loader, model, criterion, optimizer, scheduler,
 
         global_step += 1
         optimizer.zero_grad()
-
         # forward pass model
         with torch.cuda.amp.autocast(enabled=c.mixed_precision):
             if use_random_speaker_data_augmentation:
-                z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur, y, g = model.forward(
-                    text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_c, use_random_speaker_data_augmentation=True)
-                # compute loss
-                loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths,
-                                    o_dur_log, o_total_dur, text_lengths, y, g)
+                speaker_c = torch.normal(mean=0, std=1, size=speaker_c.shape).to(speaker_c.device)
+                # L2 norm
+                speaker_c = torch.nn.functional.normalize(speaker_c, p=2, dim=1)
+                y, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur = model.forward_seq2seq(text_input, text_lengths, g=speaker_c)
+                loss_dict = criterion(None, None, None, None, mel_lengths,
+                                    o_dur_log, o_total_dur, text_lengths, y, speaker_c)
             else:
-                z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur = model.forward(
-                    text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_c)
-                # compute loss
-                loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths,
+                y, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur = model.forward_seq2seq(text_input, text_lengths, g=speaker_c)
+                loss_dict = criterion(None, None, None, None, mel_lengths,
                                     o_dur_log, o_total_dur, text_lengths)
-            # print(loss_dict)
         # backward pass with loss scaling
         if c.mixed_precision:
             scaler.scale(loss_dict['loss']).backward()
@@ -216,6 +217,23 @@ def train(data_loader, model, criterion, optimizer, scheduler,
         # setup lr
         if c.noam_schedule:
             scheduler.step()
+
+        if debug:
+            # check if speaker encoder weights is updated
+            for param, param_ref in zip(speaker_encoder.parameters(),
+                                    speaker_encoder_params):
+                assert (param == param_ref).any(
+                ), "param with shape {} is updated!! \n{}\n{}".format(param.shape, param, param_ref)
+            
+            # check if decoder params is updated
+            not_updated_params = 0 
+            for _param, _param_ref in zip(model.decoder.named_parameters(),
+                                    decoder_params):
+                name, param = _param
+                _, param_ref = _param_ref
+                if (param == param_ref).any():
+                    not_updated_params +=1
+            print("Decoder num params not updated:", not_updated_params)
 
         # current_lr
         current_lr = optimizer.param_groups[0]['lr']
@@ -341,20 +359,15 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch, use_random_s
                 _, _, attn_mask, _ = format_data(data)
 
             if use_random_speaker_data_augmentation:
-                # forward pass model
-                z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur, y, speaker_c = model.forward(
-                    text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_c, use_random_speaker_data_augmentation=True)
-
-                # compute loss
-                loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths,
+                speaker_c = torch.normal(mean=0, std=1, size=speaker_c.shape).to(speaker_c.device)
+                # L2 norm
+                speaker_c = torch.nn.functional.normalize(speaker_c, p=2, dim=1)
+                y, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur = model.forward_seq2seq(text_input, text_lengths, g=speaker_c)
+                loss_dict = criterion(None, None, None, None, mel_lengths,
                                     o_dur_log, o_total_dur, text_lengths, y, speaker_c)
             else:
-                # forward pass model
-                z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur = model.forward(
-                    text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_c)
-
-                # compute loss
-                loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths,
+                y, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur = model.forward_seq2seq(text_input, text_lengths, g=speaker_c)
+                loss_dict = criterion(None, None, None, None, mel_lengths,
                                     o_dur_log, o_total_dur, text_lengths)
 
             # step time
@@ -487,8 +500,9 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch, use_random_s
         tb_logger.tb_test_figures(global_step, test_figures)
     return keep_avg.avg_values
 
-
+speaker_encoder = None
 def main(args):  # pylint: disable=redefined-outer-name
+    global speaker_encoder
     # pylint: disable=global-variable-undefined
     global meta_data_train, meta_data_eval, symbols, phonemes, model_characters, speaker_mapping
     # Audio processor
@@ -531,12 +545,13 @@ def main(args):  # pylint: disable=redefined-outer-name
             speaker_encoder.load_state_dict(torch.load(c.speaker_encoder['checkpoint_path'])['model'])
             if use_cuda:
                 speaker_encoder.cuda()
+            # speaker_encoder.eval()
             print("\n > Speaker Encoder has {} parameters \n".format(count_parameters(speaker_encoder)), flush=True)
 
     # setup model
     model = setup_model(num_chars, num_speakers, c, speaker_embedding_dim=speaker_embedding_dim)
-    optimizer = RAdam(model.parameters(), lr=c.lr, weight_decay=0, betas=(0.9, 0.98), eps=1e-9)
-    criterion = GlowTTSLoss(use_random_speaker_data_augmentation=use_random_speaker_data_augmentation, speaker_encoder=speaker_encoder)
+    optimizer = RAdam(model.decoder.parameters(), lr=c.lr, weight_decay=0, betas=(0.9, 0.98), eps=1e-9)
+    criterion = GlowTTSLoss(use_random_speaker_data_augmentation=use_random_speaker_data_augmentation, speaker_encoder=speaker_encoder, disable_neg_likelihood=True)
 
     if args.restore_path:
         print(f" > Restoring from {os.path.basename(args.restore_path)} ...")
@@ -598,17 +613,11 @@ def main(args):  # pylint: disable=redefined-outer-name
     eval_loader = setup_loader(ap, 1, is_val=True, verbose=True)
 
     # encoder_freeze = True
-    if "freeze_encoder" in c.keys():
-        if c.freeze_encoder:
-            for name, param in model.encoder.named_parameters():
-                param.requires_grad = False
-            print(" > Encoder Freeze !")
+    if c.freeze_encoder:
+        for name, param in model.encoder.named_parameters():
+            param.requires_grad = False
+        print(" > Encoder Freeze !")
 
-    if "freeze_decoder" in c.keys():
-        if c.freeze_decoder:
-            for name, param in model.decoder.named_parameters():
-                param.requires_grad = False
-            print(" > Decoder Freeze !")
 
 
     global_step = args.restore_step

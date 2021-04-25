@@ -39,7 +39,7 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    '--meta_file_train', type=str, help='path for metada file.', default=False
+    '--meta_file_train', type=str, help='path for metada file.', default=None
 )
 
 parser.add_argument(

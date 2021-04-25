@@ -253,19 +253,28 @@ class Huber(nn.Module):
             x * mask, y * mask, reduction='sum') / mask.sum()
 
 class SpeakerEncoderLoss(torch.nn.Module):
-    def __init__(self, speaker_encoder_model, beta=2):
+    def __init__(self, speaker_encoder_model, beta=1):
         super(SpeakerEncoderLoss, self).__init__()
-        self.speaker_encoder_model = speaker_encoder_model
+        self.speaker_encoder_model = speaker_encoder_model.train()
+
+        for param in self.speaker_encoder_model.parameters():
+            param.requires_grad = False
+
         self.beta = beta
+        self.criterion = torch.nn.CosineEmbeddingLoss(reduction='mean')
 
     def Lcycle(self, expected_embedding, output_embedding):
         ''' 
         Reference: https://arxiv.org/pdf/1802.06984.pdf
         '''
-        return torch.abs(expected_embedding-output_embedding).pow(2).sum()
+        # Try this: torch.nn.CosineEmbeddingLoss(reduction='mean')
+        # return torch.abs(expected_embedding-output_embedding).pow(2).sum()
+        sim_target = torch.ones(expected_embedding.size(0)).to(expected_embedding.device)
+        return self.criterion(expected_embedding, output_embedding, sim_target)
 
     def forward(self, embeddings, decoder_output, output_lens):
         output_embedding = self.speaker_encoder_model.batch_compute_embedding(decoder_output.transpose(1, 2), output_lens)
+        # output_embedding = self.speaker_encoder_model.compute_embedding_fast(decoder_output.transpose(1, 2), output_lens)
         # compute and return loss
         loss = self.beta * self.Lcycle(embeddings.squeeze(-1), output_embedding)
         return loss
@@ -414,9 +423,10 @@ class TacotronLoss(torch.nn.Module):
 
 
 class GlowTTSLoss(torch.nn.Module):
-    def __init__(self, use_random_speaker_data_augmentation=False, speaker_encoder=None):
+    def __init__(self, use_random_speaker_data_augmentation=False, speaker_encoder=None, disable_neg_likelihood=False):
         super().__init__()
         self.constant_factor = 0.5 * math.log(2 * math.pi)
+        self.disable_neg_likelihood = disable_neg_likelihood
         self.use_random_speaker_data_augmentation = use_random_speaker_data_augmentation
         if use_random_speaker_data_augmentation:
             self.se_loss = SpeakerEncoderLoss(speaker_encoder)
@@ -426,24 +436,62 @@ class GlowTTSLoss(torch.nn.Module):
     def forward(self, z, means, scales, log_det, y_lengths, o_dur_log,
                 o_attn_dur, x_lengths, y=None, g=None):
         return_dict = {}
-        # flow loss - neg log likelihood
-        pz = torch.sum(scales) + 0.5 * torch.sum(
-            torch.exp(-2 * scales) * (z - means)**2)
-        log_mle = self.constant_factor + (pz - torch.sum(log_det)) / (
-            torch.sum(y_lengths) * z.shape[1])
-        # duration loss - MSE
-        # loss_dur = torch.sum((o_dur_log - o_attn_dur)**2) / torch.sum(x_lengths)
-        # duration loss - huber loss
-        loss_dur = torch.nn.functional.smooth_l1_loss(
-            o_dur_log, o_attn_dur, reduction='sum') / torch.sum(x_lengths)
-        return_dict['loss'] = log_mle + loss_dur
-        return_dict['log_mle'] = log_mle
-        return_dict['loss_dur'] = loss_dur
+        if not self.disable_neg_likelihood:
+            # flow loss - neg log likelihood
+            pz = torch.sum(scales) + 0.5 * torch.sum(
+                torch.exp(-2 * scales) * (z - means)**2)
+            log_mle = self.constant_factor + (pz - torch.sum(log_det)) / (
+                torch.sum(y_lengths) * z.shape[1])
+            return_dict['loss'] = log_mle
+            return_dict['log_mle'] = log_mle
+            # duration loss - MSE
+            # loss_dur = torch.sum((o_dur_log - o_attn_dur)**2) / torch.sum(x_lengths)
+            # duration loss - huber loss
+            loss_dur = torch.nn.functional.smooth_l1_loss(
+                o_dur_log, o_attn_dur, reduction='sum') / torch.sum(x_lengths)
+            return_dict['loss'] += loss_dur
+            return_dict['loss_dur'] = loss_dur
 
         if self.use_random_speaker_data_augmentation:
             loss_se = self.se_loss(g, y, y_lengths)
             return_dict['loss_se'] = loss_se
-            return_dict['loss'] += loss_se
+            if self.disable_neg_likelihood:
+                return_dict['loss'] = loss_se
+            else:
+                return_dict['loss'] += loss_se
+
+        # check if any loss is NaN
+        for key, loss in return_dict.items():
+            if torch.isnan(loss):
+                raise RuntimeError(f" [!] NaN loss with {key}.")
+        return return_dict
+
+
+class GlowTTSSeq2SeqLoss(torch.nn.Module):
+    def __init__(self, speaker_encoder=None):
+        super().__init__()
+        self.se_loss = SpeakerEncoderLoss(speaker_encoder)
+        self.l1 = L1LossMasked(False)
+        self.ssim = SSIMLoss()
+        self.l1_beta = 1.5
+        self.ssim_beta = 1.5
+        
+
+    def forward(self, y, y_pred, y_lengths, g):
+        return_dict = {}
+        # speaker encoder loss in all samples
+        se_loss= self.se_loss(g, y_pred, y_lengths)
+        return_dict['loss_se'] = se_loss
+        return_dict['loss'] = se_loss
+        
+        # compute l1 masked loss for real samples
+        l1_loss = self.l1(y_pred[:y.size(0)], y, y_lengths[:y.size(0)]) * self.l1_beta
+        return_dict['loss_l1'] = l1_loss
+        return_dict['loss'] += l1_loss
+
+        ssim_loss = self.ssim(y_pred[:y.size(0)], y, y_lengths[:y.size(0)]) * self.ssim_beta
+        return_dict['loss_ssim'] = ssim_loss
+        return_dict['loss'] += ssim_loss
 
         # check if any loss is NaN
         for key, loss in return_dict.items():

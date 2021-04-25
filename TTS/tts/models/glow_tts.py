@@ -223,6 +223,172 @@ class GlowTts(nn.Module):
         attn = attn.squeeze(1).permute(0, 2, 1)
         return y, logdet, y_mean, y_log_scale, attn, o_dur_log, o_attn_dur
 
+    def forward_seq2seq(self, x, x_lengths, g=None):
+        with torch.no_grad():
+            if g is not None:
+                if self.external_speaker_embedding_dim:
+                    g = F.normalize(g).unsqueeze(-1)
+                else:
+                    g = F.normalize(self.emb_g(g)).unsqueeze(-1)  # [b, h]
+            # embedding pass
+            o_mean, o_log_scale, o_dur_log, x_mask = self.encoder(x,
+                                                                x_lengths,
+                                                                g=g)
+            # compute output durations
+            w = (torch.exp(o_dur_log) - 1) * x_mask
+            w_ceil = torch.ceil(w)
+            y_lengths = torch.clamp_min(torch.sum(w_ceil, [1, 2]), 1).long()
+            y_max_length = None
+            # compute masks
+            y_mask = torch.unsqueeze(sequence_mask(y_lengths, y_max_length),
+                                    1).to(x_mask.dtype)
+            attn_mask = torch.unsqueeze(x_mask, -1) * torch.unsqueeze(y_mask, 2)
+            # compute attention mask
+            attn = generate_path(w_ceil.squeeze(1),
+                                attn_mask.squeeze(1)).unsqueeze(1)
+            y_mean, y_log_scale, o_attn_dur = self.compute_outputs(
+                attn, o_mean, o_log_scale, x_mask)
+
+            z = (y_mean + torch.exp(y_log_scale)) * y_mask
+
+        # decoder pass
+        y, logdet = self.decoder(z, y_mask, g=g, reverse=True)
+        attn = attn.squeeze(1).permute(0, 2, 1)
+        return y, logdet, y_mean, y_log_scale, attn, o_dur_log, o_attn_dur
+
+    def forward_with_MAS_seq2seq(self, x, x_lengths, y=None, y_lengths=None, attn=None, g=None, use_random_speaker_data_augmentation=False, num_ramdom_by_real=1):
+    
+        y_max_length = y.size(2)
+        # norm speaker embeddings
+        if g is not None:
+            if self.external_speaker_embedding_dim:
+                g = F.normalize(g).unsqueeze(-1)
+            else:
+                g = F.normalize(self.emb_g(g)).unsqueeze(-1)# [b, h]
+
+        # embedding pass
+        o_mean, o_log_scale, o_dur_log, x_mask = self.encoder(x,
+                                                            x_lengths,
+                                                            g=g)
+
+        # format feature vectors and feature vector lenghts
+        y, y_lengths, y_max_length, attn = self.preprocess(
+            y, y_lengths, y_max_length, None)
+
+        # create masks
+        y_mask = torch.unsqueeze(sequence_mask(y_lengths, y_max_length),
+                                1).to(x_mask.dtype)
+        attn_mask = torch.unsqueeze(x_mask, -1) * torch.unsqueeze(y_mask, 2)
+        # decoder pass
+        z, logdet = self.decoder(y, y_mask, g=g, reverse=False)
+        # find the alignment path
+        with torch.no_grad():
+            o_scale = torch.exp(-2 * o_log_scale)
+            logp1 = torch.sum(-0.5 * math.log(2 * math.pi) - o_log_scale,
+                            [1]).unsqueeze(-1)  # [b, t, 1]
+            logp2 = torch.matmul(o_scale.transpose(1, 2), -0.5 *
+                                (z**2))  # [b, t, d] x [b, d, t'] = [b, t, t']
+            logp3 = torch.matmul((o_mean * o_scale).transpose(1, 2),
+                                z)  # [b, t, d] x [b, d, t'] = [b, t, t']
+            logp4 = torch.sum(-0.5 * (o_mean**2) * o_scale,
+                            [1]).unsqueeze(-1)  # [b, t, 1]
+            logp = logp1 + logp2 + logp3 + logp4  # [b, t, t']
+            attn = maximum_path(logp,
+                                attn_mask.squeeze(1)).unsqueeze(1).detach()
+        y_mean, y_log_scale, o_attn_dur = self.compute_outputs(
+            attn, o_mean, o_log_scale, x_mask)
+        # get from aligmened distribution
+        z = y_mean * y_mask
+
+        attn = attn.squeeze(1).permute(0, 2, 1)
+
+        if use_random_speaker_data_augmentation:
+            # get num random samples
+            num_real_samples = g.size(0)
+            num_random_samples = num_real_samples*num_ramdom_by_real
+            total_batch = num_random_samples + num_real_samples
+            rep = total_batch//num_real_samples
+
+            # repeat tensors for augamentation samples
+            z_new = z.repeat(rep, 1, 1)
+            y_mask_new = y_mask.repeat(rep, 1, 1)
+            y_lengths = y_lengths.repeat(rep)
+
+            # generate a random embeddings            
+            g_shape = list(g.shape)
+            g_shape[0] = num_random_samples
+            g_new = torch.normal(mean=0, std=1, size=g_shape).to(g.device)
+
+            # normalise new embeddings
+            g_new = torch.nn.functional.normalize(g_new, p=2, dim=1)
+            # concat old and new embedding samples
+            g_new = torch.cat((g, g_new), dim=0)
+
+            # invert decoder for get the spectrogram for real and random samples
+            y_new, _ = self.decoder(z_new, y_mask_new, g=g_new, reverse=True)
+            return y_new, logdet, y_mean, y_log_scale, attn, o_dur_log, o_attn_dur, g_new, y_lengths, y
+        else:
+            # decoder pass
+            y_new, logdet = self.decoder(z, y_mask, g=g, reverse=True)
+            return y_new, logdet, y_mean, y_log_scale, attn, o_dur_log, o_attn_dur, y
+
+    @torch.no_grad()
+    def inference_with_lenghts(self, x, x_lengths, y=None, y_lengths=None, attn=None, g=None):
+        """
+            Shapes:
+                x: B x T
+                x_lenghts: B
+                y: B x C x T
+                y_lengths: B
+        """
+        y_max_length = y.size(2)
+        # norm speaker embeddings
+        if g is not None:
+            if self.external_speaker_embedding_dim:
+                g = F.normalize(g).unsqueeze(-1)
+            else:
+                g = F.normalize(self.emb_g(g)).unsqueeze(-1)# [b, h]
+
+        # embedding pass
+        o_mean, o_log_scale, o_dur_log, x_mask = self.encoder(x,
+                                                              x_lengths,
+                                                              g=g)
+
+        # format feature vectors and feature vector lenghts
+        y, y_lengths, y_max_length, attn = self.preprocess(
+            y, y_lengths, y_max_length, None)
+
+        # create masks
+        y_mask = torch.unsqueeze(sequence_mask(y_lengths, y_max_length),
+                                 1).to(x_mask.dtype)
+        attn_mask = torch.unsqueeze(x_mask, -1) * torch.unsqueeze(y_mask, 2)
+        # decoder pass
+        z, logdet = self.decoder(y, y_mask, g=g, reverse=False)
+        # find the alignment path
+        with torch.no_grad():
+            o_scale = torch.exp(-2 * o_log_scale)
+            logp1 = torch.sum(-0.5 * math.log(2 * math.pi) - o_log_scale,
+                              [1]).unsqueeze(-1)  # [b, t, 1]
+            logp2 = torch.matmul(o_scale.transpose(1, 2), -0.5 *
+                                 (z**2))  # [b, t, d] x [b, d, t'] = [b, t, t']
+            logp3 = torch.matmul((o_mean * o_scale).transpose(1, 2),
+                                 z)  # [b, t, d] x [b, d, t'] = [b, t, t']
+            logp4 = torch.sum(-0.5 * (o_mean**2) * o_scale,
+                              [1]).unsqueeze(-1)  # [b, t, 1]
+            logp = logp1 + logp2 + logp3 + logp4  # [b, t, t']
+            attn = maximum_path(logp,
+                                attn_mask.squeeze(1)).unsqueeze(1).detach()
+        y_mean, y_log_scale, o_attn_dur = self.compute_outputs(
+            attn, o_mean, o_log_scale, x_mask)
+
+        # z = (y_mean + torch.exp(y_log_scale) * torch.randn_like(y_mean) * self.noise_scale) * y_mask
+        # its the same than self.noise_scale=0
+        z = y_mean * y_mask
+        # decoder pass
+        y, logdet = self.decoder(z, y_mask, g=g, reverse=True)
+        attn = attn.squeeze(1).permute(0, 2, 1)
+        return y, logdet, y_mean, y_log_scale, attn, o_dur_log, o_attn_dur
+
     def preprocess(self, y, y_lengths, y_max_length, attn=None):
         if y_max_length is not None:
             y_max_length = (y_max_length // self.num_squeeze) * self.num_squeeze

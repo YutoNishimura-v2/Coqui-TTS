@@ -543,9 +543,10 @@ def main(args):  # pylint: disable=redefined-outer-name
         try:
             print(" > Restoring Model...")
             model.load_state_dict(checkpoint['model'])
-            # optimizer restore
             print(" > Restoring Optimizer...")
+            # optimizer restore
             optimizer.load_state_dict(checkpoint['optimizer'])
+
             if "scaler" in checkpoint and c.mixed_precision:
                 print(" > Restoring AMP Scaler...")
                 scaler.load_state_dict(checkpoint["scaler"])
@@ -562,6 +563,7 @@ def main(args):  # pylint: disable=redefined-outer-name
 
         for group in optimizer.param_groups:
             group['lr'] = c.lr
+            group['initial_lr'] = c.lr
         print(" > Model restored from step %d" % checkpoint['step'],
               flush=True)
         args.restore_step = checkpoint['step']
