@@ -5,6 +5,8 @@ import os
 import sys
 import time
 import traceback
+import numpy as np
+import itertools
 
 import torch
 from torch.utils.data import DataLoader
@@ -13,6 +15,7 @@ from TTS.speaker_encoder.dataset import SpeakerEncoderDataset
 
 from TTS.speaker_encoder.losses import AngleProtoLoss, GE2ELoss, SoftmaxAngleProtoLoss
 from TTS.speaker_encoder.utils.generic_utils import save_best_model, setup_model
+from TTS.speaker_encoder.utils.reversal_classifier import ReversalClassifier
 
 from TTS.speaker_encoder.utils.visual import plot_embeddings
 from TTS.tts.datasets.preprocess import load_meta_data
@@ -21,6 +24,8 @@ from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import count_parameters, remove_experiment_folder, set_init_dict
 from TTS.utils.radam import RAdam
 from TTS.utils.training import NoamLR, check_update
+
+from torch.utils.data.sampler import WeightedRandomSampler
 
 torch.backends.cudnn.enabled = True
 torch.backends.cudnn.benchmark = True
@@ -47,101 +52,138 @@ def setup_loader(ap: AudioProcessor, is_val: bool = False, verbose: bool = False
             verbose=verbose,
             augmentation_config=c.audio_augmentation
         )
+        # balance language considering the number of speakers 
+        sampler = None
+        language_speaker_freq = {}
+        dataset_valid_speakers = dataset.speakers
+        speaker_language_map = dataset.speaker_language_map
+        language_speaker_freq = dataset.speakers_per_language_freq
+        unique_language_names = language_speaker_freq.keys()
+        # ignore this for single language train
+        if len(unique_language_names)> 1:
+            print(f"> Balancing the batch with {len(unique_language_names)} languages !")
+            print("> Languages:", list(unique_language_names))
+            print("> Num of Speakers by Language: ")
+            for lang in language_speaker_freq:
+                print('>    ', lang, ':', language_speaker_freq[lang])
+            # print(len(speaker_language_map), len(dataset_valid_speakers))
+            samples_weight = []
+            for spk in dataset_valid_speakers:
+                l = speaker_language_map[spk]
+                samples_weight.append(1./language_speaker_freq[l])
 
-        # sampler = DistributedSampler(dataset) if num_gpus > 1 else None
+            dataset_samples_weight = torch.from_numpy(np.array(samples_weight)).double()
+            # create sampler
+            sampler = WeightedRandomSampler(dataset_samples_weight, len(dataset_samples_weight))
+
         loader = DataLoader(
             dataset,
             batch_size=c.num_speakers_in_batch,
             shuffle=False,
+            drop_last=True,
             num_workers=c.num_loader_workers,
             collate_fn=dataset.collate_fn,
+            sampler=sampler
         )
-    return loader, dataset.get_num_speakers()
+    return loader, dataset.get_num_speakers(), len(unique_language_names)
 
 
-def train(model, optimizer, scheduler, criterion, data_loader, global_step):
+def train(model, optimizer, scheduler, criterion, data_loader, global_step, reversal_classifier=None):
     model.train()
     epoch_time = 0
     best_loss = float("inf")
     avg_loss = 0
-    avg_loss_all = 0
+    avg_spk_loss = 0
+    avg_lang_loss = 0
+    avg_loss_epoch = 0
     avg_loader_time = 0
     end_time = time.time()
+    for epoch in range(0, c.epochs):
+        print(" EPOCH: ", epoch)
+        for _, data in enumerate(data_loader):
+            start_time = time.time()
+            # setup input data
+            inputs, labels, target_lang = data
+            loader_time = time.time() - end_time
+            global_step += 1
 
-    for _, data in enumerate(data_loader):
-        start_time = time.time()
+            # setup lr
+            if c.lr_decay:
+                scheduler.step()
+            optimizer.zero_grad()
 
-        # setup input data
-        inputs, labels = data
-        loader_time = time.time() - end_time
-        global_step += 1
+            # dispatch data to GPU
+            if use_cuda:
+                inputs = inputs.cuda(non_blocking=True)
+                labels = labels.cuda(non_blocking=True)
 
-        # setup lr
-        if c.lr_decay:
-            scheduler.step()
-        optimizer.zero_grad()
+            # forward pass model
+            outputs = model(inputs)
 
-        # dispatch data to GPU
-        if use_cuda:
-            inputs = inputs.cuda(non_blocking=True)
-            labels = labels.cuda(non_blocking=True)
+            # loss computation
+            spk_loss = criterion(outputs.view(c.num_speakers_in_batch, outputs.shape[0] // c.num_speakers_in_batch, -1), labels)
+            avg_spk_loss = 0.01 * spk_loss.item() + 0.99 * avg_spk_loss if avg_spk_loss != 0 else spk_loss.item()
+            if getattr(c, "use_reversal_language_classifier", False):
+                if use_cuda:
+                    target_lang = target_lang.cuda(non_blocking=True)
+                target_lang = target_lang.reshape(-1)
+                language_prediciton = reversal_classifier(outputs)
+                lang_loss = torch.nn.functional.cross_entropy(language_prediciton, target_lang)
+                lang_loss = lang_loss * getattr(c, "lang_loss_alpha", 1)
+                loss = spk_loss + lang_loss 
+                avg_lang_loss = 0.01 * lang_loss.item() + 0.99 * avg_lang_loss if avg_lang_loss != 0 else lang_loss.item()
+            else:
+                loss = spk_loss
 
-        # forward pass model
-        outputs = model(inputs)
+            loss.backward()
+            grad_norm, _ = check_update(model, c.grad_clip)
+            optimizer.step()
 
-        # loss computation
-        loss = criterion(outputs.view(c.num_speakers_in_batch, outputs.shape[0] // c.num_speakers_in_batch, -1), labels)
-        loss.backward()
-        grad_norm, _ = check_update(model, c.grad_clip)
-        optimizer.step()
+            step_time = time.time() - start_time
+            epoch_time += step_time
 
-        step_time = time.time() - start_time
-        epoch_time += step_time
-
-        # Averaged Loss and Averaged Loader Time
-        avg_loss = 0.01 * loss.item() + 0.99 * avg_loss if avg_loss != 0 else loss.item()
-        num_loader_workers = c.num_loader_workers if c.num_loader_workers > 0 else 1
-        avg_loader_time = (
-            1 / num_loader_workers * loader_time + (num_loader_workers - 1) / num_loader_workers * avg_loader_time
-            if avg_loader_time != 0
-            else loader_time
-        )
-        current_lr = optimizer.param_groups[0]["lr"]
-
-        if global_step % c.steps_plot_stats == 0:
-            # Plot Training Epoch Stats
-            train_stats = {
-                "loss": avg_loss,
-                "lr": current_lr,
-                "grad_norm": grad_norm,
-                "step_time": step_time,
-                "avg_loader_time": avg_loader_time,
-            }
-            tb_logger.tb_train_epoch_stats(global_step, train_stats)
-            figures = {
-                # FIXME: not constant
-                "UMAP Plot": plot_embeddings(outputs.detach().cpu().numpy(), 10),
-            }
-            tb_logger.tb_train_figures(global_step, figures)
-
-        if global_step % c.print_step == 0:
-            print(
-                "   | > Step:{}  Loss:{:.5f}  AvgLoss:{:.5f}  GradNorm:{:.5f}  "
-                "StepTime:{:.2f}  LoaderTime:{:.2f}  AvGLoaderTime:{:.2f}  LR:{:.6f}".format(
-                    global_step, loss.item(), avg_loss, grad_norm, step_time, loader_time, avg_loader_time, current_lr
-                ),
-                flush=True,
+            # Averaged Loss and Averaged Loader Time
+            avg_loss = 0.01 * loss.item() + 0.99 * avg_loss if avg_loss != 0 else loss.item()
+            num_loader_workers = c.num_loader_workers if c.num_loader_workers > 0 else 1
+            avg_loader_time = (
+                1 / num_loader_workers * loader_time + (num_loader_workers - 1) / num_loader_workers * avg_loader_time
+                if avg_loader_time != 0
+                else loader_time
             )
-        avg_loss_all += avg_loss
+            current_lr = optimizer.param_groups[0]["lr"]
 
-        if global_step >= c.max_train_step or global_step % c.save_step == 0:
-            # save best model only
-            best_loss = save_best_model(model, optimizer, criterion, avg_loss, best_loss, OUT_PATH, global_step)
-            avg_loss_all = 0
-            if global_step >= c.max_train_step:
-                break
+            if global_step % c.steps_plot_stats == 0:
+                # Plot Training Epoch Stats
+                train_stats = {
+                    "loss": avg_loss,
+                    "lang_loss":avg_lang_loss,
+                    "spk_loss": avg_spk_loss,
+                    "lr": current_lr,
+                    "grad_norm": grad_norm,
+                    "step_time": step_time,
+                    "avg_loader_time": avg_loader_time,
+                }
+                tb_logger.tb_train_epoch_stats(global_step, train_stats)
+                figures = {
+                    # FIXME: not constant
+                    "UMAP Plot": plot_embeddings(outputs.detach().cpu().numpy(), 10),
+                }
+                tb_logger.tb_train_figures(global_step, figures)
 
-        end_time = time.time()
+            if global_step % c.print_step == 0:
+                print(
+                    "   | > Step:{}  Loss:{:.5f}  AvgLoss:{:.5f} AvgLangLoss: {:.5f} AvgSpeakerLoss: {:.5f} GradNorm:{:.5f}  "
+                    "StepTime:{:.2f}  LoaderTime:{:.2f}  AvGLoaderTime:{:.2f}  LR:{:.6f}".format(
+                        global_step, loss.item(), avg_loss, avg_lang_loss, avg_spk_loss, grad_norm, step_time, loader_time, avg_loader_time, current_lr
+                    ),
+                    flush=True,
+                )
+            avg_loss_epoch += avg_loss
+            end_time = time.time()
+
+        # save best model only
+        best_loss = save_best_model(model, optimizer, criterion, avg_loss, best_loss, OUT_PATH, global_step)
+        avg_loss_epoch = 0
 
     return avg_loss, global_step
 
@@ -154,18 +196,25 @@ def main(args):  # pylint: disable=redefined-outer-name
     ap = AudioProcessor(**c.audio)
     model = setup_model(c)
 
-    optimizer = RAdam(model.parameters(), lr=c.lr)
-
     # pylint: disable=redefined-outer-name
     meta_data_train, meta_data_eval = load_meta_data(c.datasets, eval_split=False)
 
-    data_loader, num_speakers = setup_loader(ap, is_val=False, verbose=True)
+    data_loader, num_speakers, num_languages = setup_loader(ap, is_val=False, verbose=True)
 
+    if getattr(c, "use_reversal_language_classifier", False):
+        reversal_classifier = ReversalClassifier(c.model_params["proj_dim"], hidden_dim=256, output_dim=num_languages, gradient_clipping_bounds=0.25)         
+        optimizer = RAdam(itertools.chain(model.parameters(), reversal_classifier.parameters()), lr=c.lr)
+    else: 
+        reversal_classifier = None
+        optimizer = RAdam(model.parameters(), lr=c.lr)
+    
+    
     if c.loss == "ge2e":
         criterion = GE2ELoss(loss_method="softmax")
     elif c.loss == "angleproto":
         criterion = AngleProtoLoss()
     elif c.loss == "softmaxproto":
+        print(c.model, num_speakers)
         criterion = SoftmaxAngleProtoLoss(c.model["proj_dim"], num_speakers)
     else:
         raise Exception("The %s  not is a loss supported" % c.loss)
@@ -201,12 +250,15 @@ def main(args):  # pylint: disable=redefined-outer-name
     num_params = count_parameters(model)
     print("\n > Model has {} parameters".format(num_params), flush=True)
 
+
     if use_cuda:
         model = model.cuda()
         criterion.cuda()
+        if reversal_classifier is not None:
+            reversal_classifier = reversal_classifier.cuda()
 
     global_step = args.restore_step
-    _, global_step = train(model, optimizer, scheduler, criterion, data_loader, global_step)
+    _, global_step = train(model, optimizer, scheduler, criterion, data_loader, global_step, reversal_classifier)
 
 
 if __name__ == "__main__":

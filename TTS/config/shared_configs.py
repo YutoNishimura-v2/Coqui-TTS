@@ -153,6 +153,8 @@ class BaseDatasetConfig(Coqpit):
         meta_file_attn_mask (str):
             Path to the file that lists the attention mask files used with models that require attention masks to
             train the duration predictor.
+        language (str):
+            Dataset language, this is useful for language balancing in batch during training
     """
 
     name: str = ""
@@ -161,6 +163,7 @@ class BaseDatasetConfig(Coqpit):
     ununsed_speakers: List[str] = None
     meta_file_val: str = ""
     meta_file_attn_mask: str = ""
+    language: str = None
 
     def check_values(
         self,
@@ -172,6 +175,7 @@ class BaseDatasetConfig(Coqpit):
         check_argument("meta_file_train", c, restricted=True)
         check_argument("meta_file_val", c, restricted=False)
         check_argument("meta_file_attn_mask", c, restricted=False)
+        check_argument("language", c, restricted=False)
 
 
 @dataclass

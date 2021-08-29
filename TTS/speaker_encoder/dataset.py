@@ -36,7 +36,10 @@ class SpeakerEncoderDataset(Dataset):
         self.skip_speakers = skip_speakers
         self.ap = ap
         self.verbose = verbose
+
         self.__parse_items()
+        self.speakers = [k for (k, v) in self.speaker_to_utters.items()]
+
         storage_max_size = storage_size * num_speakers_in_batch
         self.storage = Storage(maxsize=storage_max_size, storage_batchs=storage_size, num_speakers_in_batch=num_speakers_in_batch)
         self.sample_from_storage_p = float(sample_from_storage_p)
@@ -44,6 +47,7 @@ class SpeakerEncoderDataset(Dataset):
         speakers_aux = list(self.speakers)
         speakers_aux.sort()
         self.speakerid_to_classid = {key : i for i, key in enumerate(speakers_aux)}
+        self.language_to_classid = {key : i for i, key in enumerate(list(self.speakers_per_language_freq.keys()))}
 
         # Augmentation
         self.augmentator = None
@@ -87,25 +91,32 @@ class SpeakerEncoderDataset(Dataset):
 
     def __parse_items(self):
         self.speaker_to_utters = {}
+        self.speakers_per_language_freq = {}
+        self.speaker_language_map = {}
         for i in self.items:
             path_ = i[1]
             speaker_ = i[2]
+            lang_ = i[3]
             if speaker_ in self.speaker_to_utters.keys():
                 self.speaker_to_utters[speaker_].append(path_)
             else:
                 self.speaker_to_utters[speaker_] = [
                     path_,
                 ]
+                if speaker_ not in self.speaker_language_map:
+                    self.speaker_language_map[speaker_] = lang_
+                if lang_ not in self.speakers_per_language_freq:
+                    self.speakers_per_language_freq[lang_] = 1
+                else:
+                    self.speakers_per_language_freq[lang_] += 1
 
         if self.skip_speakers:
             self.speaker_to_utters = {
                 k: v for (k, v) in self.speaker_to_utters.items() if len(v) >= self.num_utter_per_speaker
             }
 
-        self.speakers = [k for (k, v) in self.speaker_to_utters.items()]
-
     def __len__(self):
-        return int(1e10)
+        return len(self.speakers)
 
     def get_num_speakers(self):
         return len(self.speakers)
@@ -131,6 +142,7 @@ class SpeakerEncoderDataset(Dataset):
         """
         wavs = []
         labels = []
+        langs = []
         for _ in range(self.num_utter_per_speaker):
             # TODO:dummy but works
             while True:
@@ -138,8 +150,9 @@ class SpeakerEncoderDataset(Dataset):
                 if len(self.speaker_to_utters[speaker]) > 1:
                     utter = random.sample(self.speaker_to_utters[speaker], 1)[0]
                 else:
-                    if speaker in self.speakers:
-                        self.speakers.remove(speaker)
+                    # cant remove speakers because it will break the language balancer
+                    '''if speaker in self.speakers:
+                        self.speakers.remove(speaker)'''
 
                     speaker, _ = self.__sample_speaker()
                     continue
@@ -157,19 +170,22 @@ class SpeakerEncoderDataset(Dataset):
 
             wavs.append(wav)
             labels.append(self.speakerid_to_classid[speaker])
-        return wavs, labels
+            langs.append(self.language_to_classid[self.speaker_language_map[speaker]])
+        return wavs, labels, langs
 
     def __getitem__(self, idx):
-        speaker, _ = self.__sample_speaker()
+        speaker = self.speakers[idx]
+        # speaker, _ = self.__sample_speaker()
         speaker_id = self.speakerid_to_classid[speaker]
         return speaker, speaker_id
 
     def __load_from_disk_and_storage(self, speaker):
         # don't sample from storage, but from HDD
-        wavs_, labels_ = self.__sample_speaker_utterances(speaker)
-        # put the newly loaded item into storage
-        self.storage.append((wavs_, labels_))
-        return wavs_, labels_
+        wavs_, labels_, langs_ = self.__sample_speaker_utterances(speaker)
+        if self.sample_from_storage_p:
+            # put the newly loaded item into storage
+            self.storage.append((wavs_, labels_, langs_))
+        return wavs_, labels_, langs_
 
     def collate_fn(self, batch):
         # get the batch speaker_ids
@@ -177,6 +193,7 @@ class SpeakerEncoderDataset(Dataset):
         speakers_id_in_batch = set(batch[:, 1].astype(np.int32))
 
         labels = []
+        langs = []
         feats = []
         speakers = set()
 
@@ -194,27 +211,27 @@ class SpeakerEncoderDataset(Dataset):
                 speaker_id = self.speakerid_to_classid[speaker]
                 speakers_id_in_batch.add(speaker_id)
 
-            if random.random() < self.sample_from_storage_p and self.storage.full():
+            if self.sample_from_storage_p and random.random() < self.sample_from_storage_p and self.storage.full():
                 # sample from storage (if full)
-                wavs_, labels_ = self.storage.get_random_sample_fast()
+                wavs_, labels_, langs_ = self.storage.get_random_sample_fast()
 
                 # force choose the current speaker or other not in batch
                 # It's necessary for ideal training with AngleProto and GE2E losses
                 if labels_[0] in speakers_id_in_batch and labels_[0] != speaker_id:
                     attempts = 0
                     while True:
-                        wavs_, labels_ = self.storage.get_random_sample_fast()
+                        wavs_, labels_, langs_ = self.storage.get_random_sample_fast()
                         if labels_[0] == speaker_id or labels_[0] not in speakers_id_in_batch:
                             break
 
                         attempts += 1
                         # Try 5 times after that load from disk
                         if attempts >= 5:
-                            wavs_, labels_ = self.__load_from_disk_and_storage(speaker)
+                            wavs_, labels_, langs_ = self.__load_from_disk_and_storage(speaker)
                             break
             else:
                 # don't sample from storage, but from HDD
-                wavs_, labels_ = self.__load_from_disk_and_storage(speaker)
+                wavs_, labels_, langs_ = self.__load_from_disk_and_storage(speaker)
 
             # append speaker for control
             speakers.add(labels_[0])
@@ -238,9 +255,11 @@ class SpeakerEncoderDataset(Dataset):
                 feats_.append(torch.FloatTensor(mel))
 
             labels.append(torch.LongTensor(labels_))
+            langs.append(torch.LongTensor(langs_))
             feats.extend(feats_)
 
         feats = torch.stack(feats)
         labels = torch.stack(labels)
+        langs = torch.stack(langs)
 
-        return feats.transpose(1, 2), labels
+        return feats.transpose(1, 2), labels, langs.transpose(1, 0)

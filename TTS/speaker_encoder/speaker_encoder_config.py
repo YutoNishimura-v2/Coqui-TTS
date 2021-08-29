@@ -59,6 +59,8 @@ class SpeakerEncoderConfig(BaseTrainingConfig):
     num_loader_workers: int = MISSING
     skip_speakers: bool = False
     voice_len: float = 1.6
+    use_reversal_language_classifier: bool = False
+    lang_loss_alpha: float = 1.0
 
     def check_values(self):
         super().check_values()
