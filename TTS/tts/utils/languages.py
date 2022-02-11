@@ -121,4 +121,4 @@ def get_language_balancer_weights(items: list):
     dataset_samples_weight = np.array([weight_language[l] for l in language_ids])
     # normalize
     dataset_samples_weight = dataset_samples_weight / np.linalg.norm(dataset_samples_weight)
-    return torch.from_numpy(dataset_samples_weight).double()
+    return torch.from_numpy(dataset_samples_weight).float()
