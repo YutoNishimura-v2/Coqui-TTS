@@ -4,6 +4,7 @@ import xml.etree.ElementTree as ET
 from glob import glob
 from pathlib import Path
 from typing import List
+import json
 
 from tqdm import tqdm
 
@@ -413,4 +414,42 @@ def kokoro(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
             wav_file = os.path.join(root_path, "wavs", cols[0] + ".wav")
             text = cols[2].replace(" ", "")
             items.append([text, wav_file, speaker_name])
+    return items
+
+
+# original
+def jsut(root_path, meta_files=None, ununsed_speakers=None):
+    items = []
+    root_path = Path(root_path)
+    meta_files = root_path.glob("**/transcript_utf8.txt")
+    for meta_file in meta_files:
+        with open(meta_file, 'r') as f:
+            texts = f.readlines()
+        for text_line in texts:
+            file_stem, raw_text = text_line.split(":")
+            wav_path = meta_file.parent / "wav" / (file_stem + ".wav")
+            if wav_path.exists():
+                items.append([raw_text.strip(), str(wav_path), 'jsut'])
+    return items
+
+
+def coefont_studio(root_path, meta_files=None, ununsed_speakers=None):
+    items = []
+    root_path = Path(root_path)
+    meta_files = root_path.glob("**/*.json")
+    for meta_file in meta_files:
+        with open(meta_file, "r") as f:
+            json_data = json.load(f)
+        for utt_id, values in json_data.items():
+            if "yomi" in values.keys():
+                raw_text = values["yomi"]
+            else:
+                # 例: millial/normalはyomiがない
+                raw_text = values["text"]
+            speaker_name = meta_file.parent.parent.stem
+            emotion_name = meta_file.parent.stem
+            wav_path = meta_file.parent / "wav" / (utt_id + ".wav")
+            
+            if wav_path.exists():
+                items.append([raw_text, str(wav_path), speaker_name + "_" + emotion_name])
     return items
