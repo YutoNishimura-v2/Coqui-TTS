@@ -1,7 +1,10 @@
 # original
 datasets/
-checkpoints/
-exps/
+*.npy
+*.pth.tar
+
+speakers.json
+d_vector_file.json
 
 WadaSNR/
 .idea/
@@ -157,7 +160,6 @@ SocialMedia.txt
 output.wav
 tts_output.wav
 deps.json
-speakers.json
 internal/*
 *_pitch.npy
 *_phoneme.npy
