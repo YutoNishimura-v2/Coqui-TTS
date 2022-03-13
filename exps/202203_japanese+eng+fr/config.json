@@ -105,27 +105,6 @@
             "name": "vctk",
             "path": "datasets/VCTK-Corpus-removed-silence_16Khz/",
             "meta_file_train": null,
-            "ununsed_speakers": [
-                "p225",
-                "p234",
-                "p238",
-                "p245",
-                "p248",
-                "p261",
-                "p294",
-                "p302",
-                "p326",
-                "p335",
-                "p347"
-            ],
-            "language": "en",
-            "meta_file_val": null,
-            "meta_file_attn_mask": ""
-        },
-        {
-            "name": "libri_tts",
-            "path": "datasets/LibriTTS/LibriTTS/dataset-preprocessed-clean-100-and-360/dataset-22k/",
-            "meta_file_train": null,
             "ununsed_speakers": null,
             "language": "en",
             "meta_file_val": null,
