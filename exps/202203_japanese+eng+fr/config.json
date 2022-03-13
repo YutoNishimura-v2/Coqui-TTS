@@ -114,7 +114,10 @@
             "name": "mailabs",
             "path": "datasets/M-AILABS/fr_FR",
             "meta_file_train": "",
-            "ununsed_speakers": null,
+            "ununsed_speakers": [
+                "les_tribulations_dun_chinoise",
+                "madame_bovary"
+            ],
             "language": "fr-fr",
             "meta_file_val": null,
             "meta_file_attn_mask": null
