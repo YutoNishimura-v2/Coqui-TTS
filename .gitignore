@@ -1,5 +1,6 @@
 # original
 datasets/
+!TTS/tts/datasets/
 *.npy
 *.pth.tar
 checkpoints/

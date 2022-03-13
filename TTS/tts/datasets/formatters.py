@@ -418,7 +418,7 @@ def kokoro(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
 
 
 # original
-def jsut(root_path, meta_files=None, ununsed_speakers=None):
+def jsut(root_path, meta_files=None, ununsed_speakers=None, **kwargs):
     items = []
     root_path = Path(root_path)
     meta_files = root_path.glob("**/transcript_utf8.txt")
@@ -434,6 +434,7 @@ def jsut(root_path, meta_files=None, ununsed_speakers=None):
 
 
 def coefont_studio(root_path, meta_files=None, ununsed_speakers=None):
+    # ununsed_speakers を真逆の意味で使います
     items = []
     root_path = Path(root_path)
     meta_files = root_path.glob("**/*.json")
@@ -448,8 +449,14 @@ def coefont_studio(root_path, meta_files=None, ununsed_speakers=None):
                 raw_text = values["text"]
             speaker_name = meta_file.parent.parent.stem
             emotion_name = meta_file.parent.stem
-            wav_path = meta_file.parent / "wav" / (utt_id + ".wav")
             
+            spk = speaker_name + "_" + emotion_name
+            
+            if ununsed_speakers is not None:
+                if spk not in ununsed_speakers:
+                    continue
+            wav_path = meta_file.parent / "wav" / (utt_id + ".wav")
+
             if wav_path.exists():
-                items.append([raw_text, str(wav_path), speaker_name + "_" + emotion_name])
+                items.append([raw_text, str(wav_path), spk])
     return items

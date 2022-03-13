@@ -20,9 +20,33 @@
   - 結果:
     - 普通に良い感じ
     - さすがに単一話者は余裕
-- 20220309_japanese_multispeaker_wo_speakerencoder_exp
+- 20220309_japanese_multispeaker_wo_speakerencoder_exp@home
   - 20220228_japanese_multispeaker_exp と同じデータだけど，Speaker encoderを利用せずに実行してみる
     - 具体的には，use_d_vector系をnullとかにするだけで勝手にspeaker ID作ってくれる
   - 配布重みからスタート
   - 1000epoch
+  - 結果:
+- 202203_japanese+eng+fr@abci-a_yell
+  - speaker encoder利用せず
+  - 配布重みからスタート
+  - 言語バランシング利用
+  - 2000epoch
+  - batch_size = 52
+  - jobID: 9534133
+  - 結果:
+- 20220314_japanese_allial_four_emotion@abci-a_yell
+  - speaker encoder利用せず
+  - アリアルのみ．4感情付き
+  - 配布重みからスタート
+  - 1000epoch
+  - batch_size = 26
+  - jobID: 9534127
+  - 結果:
+- 20220314_japanese_allial_millial@abci-a_yell
+  - speaker encoder利用せず
+  - 2話者のみ
+  - 配布重みからスタート
+  - 1000epoch
+  - batch_size = 26
+  - jobID: 9534131
   - 結果:

@@ -2,9 +2,9 @@
     "model": "vits",
     "run_name": "vits_tts-portuguese",
     "run_description": "",
-    "epochs": 2000,
-    "batch_size": 52,
-    "eval_batch_size": 52,
+    "epochs": 1000,
+    "batch_size": 26,
+    "eval_batch_size": 26,
     "mixed_precision": false,
     "scheduler_after_epoch": true,
     "run_eval": true,
@@ -24,8 +24,8 @@
     "num_loader_workers": 4,
     "num_eval_loader_workers": 4,
     "use_noise_augment": false,
-    "use_language_weighted_sampler": true,
-    "output_path": "checkpoints/japanese+eng+fr_20220314/",
+    "use_language_weighted_sampler": false,
+    "output_path": "checkpoints/20220314_japanese_allial_four_emotion/",
     "distributed_backend": "nccl",
     "distributed_url": "tcp://localhost:54321",
     "audio": {
@@ -65,7 +65,7 @@
     "text_cleaner": "multilingual_cleaners",
     "enable_eos_bos_chars": false,
     "test_sentences_file": "",
-    "phoneme_cache_path": "exps/japanese+eng+fr_20220314/phoneme_cache/",
+    "phoneme_cache_path": "exps/20220314_japanese_allial_four_emotion/phoneme_cache/",
     "characters": {
         "pad": "_",
         "eos": "&",
@@ -87,7 +87,13 @@
             "name": "coefont_studio",
             "path": "datasets/Coefont-Studio-16khz/",
             "meta_file_train": null,
-            "ununsed_speakers": null,
+            "ununsed_speakers": [
+                "allial_ikari",
+                "allial_kanashimi",
+                "allial_normal",
+                "allial_tanoshimi",
+                "allial_yorokobi"
+            ],
             "language": "ja-jp",
             "meta_file_val": null,
             "meta_file_attn_mask": ""
@@ -100,45 +106,6 @@
             "language": "ja-jp",
             "meta_file_val": null,
             "meta_file_attn_mask": ""
-        },
-        {
-            "name": "vctk",
-            "path": "datasets/VCTK-Corpus-removed-silence_16Khz/",
-            "meta_file_train": null,
-            "ununsed_speakers": [
-                "p225",
-                "p234",
-                "p238",
-                "p245",
-                "p248",
-                "p261",
-                "p294",
-                "p302",
-                "p326",
-                "p335",
-                "p347"
-            ],
-            "language": "en",
-            "meta_file_val": null,
-            "meta_file_attn_mask": ""
-        },
-        {
-            "name": "libri_tts",
-            "path": "datasets/LibriTTS/LibriTTS/dataset-preprocessed-clean-100-and-360/dataset-22k/",
-            "meta_file_train": null,
-            "ununsed_speakers": null,
-            "language": "en",
-            "meta_file_val": null,
-            "meta_file_attn_mask": ""
-        },
-        {
-            "name": "mailabs",
-            "path": "datasets/M-AILABS/fr_FR",
-            "meta_file_train": "",
-            "ununsed_speakers": null,
-            "language": "fr-fr",
-            "meta_file_val": null,
-            "meta_file_attn_mask": null
         }
     ],
     "optimizer": "AdamW",
@@ -186,66 +153,6 @@
         [
             "あの道の向こう側に、大きな建物があるでしょ。昔はあそこに鹿鳴館があったんだよ。",
             "allial_yorokobi",
-            null,
-            "ja-jp"
-        ],
-        [
-            "あの道の向こう側に、大きな建物があるでしょ。昔はあそこに鹿鳴館があったんだよ。",
-            "averuni_ikari",
-            null,
-            "ja-jp"
-        ],
-        [
-            "あの道の向こう側に、大きな建物があるでしょ。昔はあそこに鹿鳴館があったんだよ。",
-            "averuni_kanashimi",
-            null,
-            "ja-jp"
-        ],
-        [
-            "あの道の向こう側に、大きな建物があるでしょ。昔はあそこに鹿鳴館があったんだよ。",
-            "averuni_normal",
-            null,
-            "ja-jp"
-        ],
-        [
-            "あの道の向こう側に、大きな建物があるでしょ。昔はあそこに鹿鳴館があったんだよ。",
-            "averuni_tanoshimi",
-            null,
-            "ja-jp"
-        ],
-        [
-            "あの道の向こう側に、大きな建物があるでしょ。昔はあそこに鹿鳴館があったんだよ。",
-            "averuni_yorokobi",
-            null,
-            "ja-jp"
-        ],
-        [
-            "あの道の向こう側に、大きな建物があるでしょ。昔はあそこに鹿鳴館があったんだよ。",
-            "millial_ikari",
-            null,
-            "ja-jp"
-        ],
-        [
-            "あの道の向こう側に、大きな建物があるでしょ。昔はあそこに鹿鳴館があったんだよ。",
-            "millial_kanashimi",
-            null,
-            "ja-jp"
-        ],
-        [
-            "あの道の向こう側に、大きな建物があるでしょ。昔はあそこに鹿鳴館があったんだよ。",
-            "millial_normal",
-            null,
-            "ja-jp"
-        ],
-        [
-            "あの道の向こう側に、大きな建物があるでしょ。昔はあそこに鹿鳴館があったんだよ。",
-            "millial_tanoshimi",
-            null,
-            "ja-jp"
-        ],
-        [
-            "あの道の向こう側に、大きな建物があるでしょ。昔はあそこに鹿鳴館があったんだよ。",
-            "millial_yorokobi",
             null,
             "ja-jp"
         ]
@@ -325,8 +232,8 @@
         "detach_dp_input": true,
         "use_language_embedding": true,
         "embedded_language_dim": 4,
-        "num_languages": 3,
-        "use_speaker_encoder_as_loss": true,
+        "num_languages": 1,
+        "use_speaker_encoder_as_loss": false,
         "speaker_encoder_config_path": null,
         "speaker_encoder_model_path": null,
         "fine_tuning_mode": 0,
