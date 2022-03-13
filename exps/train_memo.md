@@ -31,8 +31,8 @@
   - 配布重みからスタート
   - 言語バランシング利用
   - 2000epoch
-  - batch_size = 52
-  - jobID: 9534467
+  - batch_size = 26
+  - jobID: 9534550
   - 結果:
 - 20220314_japanese_allial_four_emotion@abci-a_yell
   - speaker encoder利用せず
