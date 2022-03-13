@@ -2,6 +2,7 @@
 datasets/
 *.npy
 *.pth.tar
+checkpoints/
 
 speakers.json
 d_vector_file.json
