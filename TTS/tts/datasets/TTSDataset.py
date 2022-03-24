@@ -315,7 +315,12 @@ class TTSDataset(Dataset):
         ignored = []
         for i, idx in enumerate(idxs):
             length = lengths[idx]
-            if length < self.min_seq_len or length > self.max_seq_len:
+            lang = self.items[idx]
+            if lang == "ja-jp":
+                _min_seq_len = 11
+            else:
+                _min_seq_len = self.min_seq_len
+            if (length < _min_seq_len) or (length > self.max_seq_len):
                 ignored.append(idx)
             else:
                 new_items.append(self.items[idx])
