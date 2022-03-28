@@ -5,6 +5,7 @@ from glob import glob
 from pathlib import Path
 from typing import List
 import json
+from gruut_ipa import Accent
 
 from tqdm import tqdm
 
@@ -447,11 +448,17 @@ def coefont_studio(root_path, meta_files=None, ununsed_speakers=None):
             else:
                 # 例: millial/normalはyomiがない
                 raw_text = values["text"]
+
+            # アクセント情報がある場合利用
+            accent_info = values["accent"]
+
+            raw_text = raw_text + "_<accent>_" + accent_info
+
             speaker_name = meta_file.parent.parent.stem
             emotion_name = meta_file.parent.stem
-            
+
             spk = speaker_name + "_" + emotion_name
-            
+
             if ununsed_speakers is not None:
                 if spk not in ununsed_speakers:
                     continue

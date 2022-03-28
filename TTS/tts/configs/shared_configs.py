@@ -187,6 +187,7 @@ class BaseTTSConfig(BaseTrainingConfig):
     # phoneme settings
     use_phonemes: bool = False
     use_espeak_phonemes: bool = True
+    use_IPAg2p_phonemes: bool = False
     use_accent_info: bool = False
     phoneme_language: str = None
     compute_input_seq_cache: bool = False

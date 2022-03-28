@@ -6,12 +6,18 @@ python3 TTS/bin/train_tts.py \
 # アクセント追加するために変更した部分を記録しておく
 - config
   - BaseTTSConfig:
+    - 「"use_IPAg2p_phonemes": true」
     - 「"use_accent_info": true」
   - CharactersConfig:
     - 「"accents": "012"」
   - VitsArgs:
     - 「"use_accent_embedding": true」
     - 「"embedded_accent_dim": 256」
+
+- formatters.py
+  - coefont_studio
+    - 「raw_text = raw_text + "_<accent>_" + accent_info」
+    - ↑この形でアクセント情報を追加
 
 ## memo
 - config
@@ -21,3 +27,11 @@ python3 TTS/bin/train_tts.py \
     - 特に「model_args」は 「VitsArgs」で管理
   
   - 追加は上の構成に従ってやってみる．
+
+- accent
+  - IPAg2pを利用する
+  - 日本語のみアクセント情報が追加で必要．
+  - それ以外の言語は不要
+  - テキストの後半にアクセント情報も付記する形で保持する
+    - at 「formatters.py」
+    - そうすることで今までの形式は大きく変える必要をなくす

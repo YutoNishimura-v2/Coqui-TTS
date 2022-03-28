@@ -60,6 +60,7 @@
     },
     "use_phonemes": true,
     "use_espeak_phonemes": false,
+    "use_IPAg2p_phonemes": true,
     "use_accent_info": true,
     "phoneme_language": "ja-jp",
     "compute_input_seq_cache": false,
