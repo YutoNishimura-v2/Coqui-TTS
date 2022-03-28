@@ -1,0 +1,3 @@
+[submodule "IPAg2p"]
+	path = IPAg2p
+	url = git@github.com:yellston-com/IPAg2p.git
