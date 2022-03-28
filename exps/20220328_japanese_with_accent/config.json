@@ -2,7 +2,7 @@
     "model": "vits",
     "run_name": "vits_tts-portuguese",
     "run_description": "",
-    "epochs": 100,
+    "epochs": 1000,
     "batch_size": 26,
     "eval_batch_size": 26,
     "mixed_precision": false,
@@ -15,17 +15,17 @@
     "plot_step": 100,
     "model_param_stats": false,
     "project_name": null,
-    "log_model_step": 1000,
+    "log_model_step": 10000,
     "wandb_entity": null,
-    "save_step": 1000,
+    "save_step": 50000,
     "checkpoint": true,
     "keep_all_best": false,
-    "keep_after": 1000,
+    "keep_after": 50000,
     "num_loader_workers": 4,
     "num_eval_loader_workers": 4,
     "use_noise_augment": false,
     "use_language_weighted_sampler": false,
-    "output_path": "checkpoints/japanese_multispeaker_exp_20220228/",
+    "output_path": "checkpoints/20220328_japanese_with_accent/",
     "distributed_backend": "nccl",
     "distributed_url": "tcp://localhost:54321",
     "audio": {
@@ -60,12 +60,13 @@
     },
     "use_phonemes": true,
     "use_espeak_phonemes": false,
+    "use_accent_info": true,
     "phoneme_language": "ja-jp",
     "compute_input_seq_cache": false,
     "text_cleaner": "multilingual_cleaners",
     "enable_eos_bos_chars": false,
     "test_sentences_file": "",
-    "phoneme_cache_path": "exps/japanese_multispeaker_exp_20220228/phoneme_cache/",
+    "phoneme_cache_path": "exps/20220328_japanese_with_accent/phoneme_cache/",
     "characters": {
         "pad": "_",
         "eos": "&",
@@ -73,6 +74,7 @@
         "characters": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\u00af\u00b7\u00df\u00e0\u00e1\u00e2\u00e3\u00e4\u00e6\u00e7\u00e8\u00e9\u00ea\u00eb\u00ec\u00ed\u00ee\u00ef\u00f1\u00f2\u00f3\u00f4\u00f5\u00f6\u00f9\u00fa\u00fb\u00fc\u00ff\u0101\u0105\u0107\u0113\u0119\u011b\u012b\u0131\u0142\u0144\u014d\u0151\u0153\u015b\u016b\u0171\u017a\u017c\u01ce\u01d0\u01d2\u01d4\u0430\u0431\u0432\u0433\u0434\u0435\u0436\u0437\u0438\u0439\u043a\u043b\u043c\u043d\u043e\u043f\u0440\u0441\u0442\u0443\u0444\u0445\u0446\u0447\u0448\u0449\u044a\u044b\u044c\u044d\u044e\u044f\u0451\u0454\u0456\u0457\u0491\u2013!'(),-.:;? ",
         "punctuations": "!'(),-.:;? ",
         "phonemes": "iy\u0268\u0289\u026fu\u026a\u028f\u028ae\u00f8\u0258\u0259\u0275\u0264o\u025b\u0153\u025c\u025e\u028c\u0254\u00e6\u0250a\u0276\u0251\u0252\u1d7b\u0298\u0253\u01c0\u0257\u01c3\u0284\u01c2\u0260\u01c1\u029bpbtd\u0288\u0256c\u025fk\u0261q\u0262\u0294\u0274\u014b\u0272\u0273n\u0271m\u0299r\u0280\u2c71\u027e\u027d\u0278\u03b2fv\u03b8\u00f0sz\u0283\u0292\u0282\u0290\u00e7\u029dx\u0263\u03c7\u0281\u0127\u0295h\u0266\u026c\u026e\u028b\u0279\u027bj\u0270l\u026d\u028e\u029f\u02c8\u02cc\u02d0\u02d1\u028dw\u0265\u029c\u02a2\u02a1\u0255\u0291\u027a\u0267\u025a\u02de\u026b'\u0303' ",
+        "accents": "012",
         "unique": true
     },
     "batch_group_size": 0,
@@ -87,16 +89,10 @@
             "name": "coefont_studio",
             "path": "datasets/Coefont-Studio-16khz/",
             "meta_file_train": null,
-            "ununsed_speakers": null,
-            "language": "ja-jp",
-            "meta_file_val": null,
-            "meta_file_attn_mask": ""
-        },
-        {
-            "name": "jsut",
-            "path": "datasets/jsut_ver1.1_16kHz/",
-            "meta_file_train": null,
-            "ununsed_speakers": null,
+            "ununsed_speakers": [
+                "allial_normal",
+                "millial_normal"
+            ],
             "language": "ja-jp",
             "meta_file_val": null,
             "meta_file_attn_mask": ""
@@ -115,107 +111,23 @@
     "lr_scheduler_params": null,
     "test_sentences": [
         [
-            "\u3042\u306e\u9053\u306e\u5411\u3053\u3046\u5074\u306b\u3001\u5927\u304d\u306a\u5efa\u7269\u304c\u3042\u308b\u3067\u3057\u3087\u3002\u6614\u306f\u3042\u305d\u3053\u306b\u9e7f\u9cf4\u9928\u304c\u3042\u3063\u305f\u3093\u3060\u3088\u3002",
-            "jsut",
-            null,
-            "ja-jp"
-        ],
-        [
-            "\u3042\u306e\u9053\u306e\u5411\u3053\u3046\u5074\u306b\u3001\u5927\u304d\u306a\u5efa\u7269\u304c\u3042\u308b\u3067\u3057\u3087\u3002\u6614\u306f\u3042\u305d\u3053\u306b\u9e7f\u9cf4\u9928\u304c\u3042\u3063\u305f\u3093\u3060\u3088\u3002",
-            "allial_ikari",
-            null,
-            "ja-jp"
-        ],
-        [
-            "\u3042\u306e\u9053\u306e\u5411\u3053\u3046\u5074\u306b\u3001\u5927\u304d\u306a\u5efa\u7269\u304c\u3042\u308b\u3067\u3057\u3087\u3002\u6614\u306f\u3042\u305d\u3053\u306b\u9e7f\u9cf4\u9928\u304c\u3042\u3063\u305f\u3093\u3060\u3088\u3002",
-            "allial_kanashimi",
-            null,
-            "ja-jp"
-        ],
-        [
-            "\u3042\u306e\u9053\u306e\u5411\u3053\u3046\u5074\u306b\u3001\u5927\u304d\u306a\u5efa\u7269\u304c\u3042\u308b\u3067\u3057\u3087\u3002\u6614\u306f\u3042\u305d\u3053\u306b\u9e7f\u9cf4\u9928\u304c\u3042\u3063\u305f\u3093\u3060\u3088\u3002",
+            "あの道の向こう側に、大きな建物があるでしょ。昔はあそこに鹿鳴館があったんだよ。",
             "allial_normal",
             null,
             "ja-jp"
         ],
         [
-            "\u3042\u306e\u9053\u306e\u5411\u3053\u3046\u5074\u306b\u3001\u5927\u304d\u306a\u5efa\u7269\u304c\u3042\u308b\u3067\u3057\u3087\u3002\u6614\u306f\u3042\u305d\u3053\u306b\u9e7f\u9cf4\u9928\u304c\u3042\u3063\u305f\u3093\u3060\u3088\u3002",
-            "allial_tanoshimi",
-            null,
-            "ja-jp"
-        ],
-        [
-            "\u3042\u306e\u9053\u306e\u5411\u3053\u3046\u5074\u306b\u3001\u5927\u304d\u306a\u5efa\u7269\u304c\u3042\u308b\u3067\u3057\u3087\u3002\u6614\u306f\u3042\u305d\u3053\u306b\u9e7f\u9cf4\u9928\u304c\u3042\u3063\u305f\u3093\u3060\u3088\u3002",
-            "allial_yorokobi",
-            null,
-            "ja-jp"
-        ],
-        [
-            "\u3042\u306e\u9053\u306e\u5411\u3053\u3046\u5074\u306b\u3001\u5927\u304d\u306a\u5efa\u7269\u304c\u3042\u308b\u3067\u3057\u3087\u3002\u6614\u306f\u3042\u305d\u3053\u306b\u9e7f\u9cf4\u9928\u304c\u3042\u3063\u305f\u3093\u3060\u3088\u3002",
-            "averuni_ikari",
-            null,
-            "ja-jp"
-        ],
-        [
-            "\u3042\u306e\u9053\u306e\u5411\u3053\u3046\u5074\u306b\u3001\u5927\u304d\u306a\u5efa\u7269\u304c\u3042\u308b\u3067\u3057\u3087\u3002\u6614\u306f\u3042\u305d\u3053\u306b\u9e7f\u9cf4\u9928\u304c\u3042\u3063\u305f\u3093\u3060\u3088\u3002",
-            "averuni_kanashimi",
-            null,
-            "ja-jp"
-        ],
-        [
-            "\u3042\u306e\u9053\u306e\u5411\u3053\u3046\u5074\u306b\u3001\u5927\u304d\u306a\u5efa\u7269\u304c\u3042\u308b\u3067\u3057\u3087\u3002\u6614\u306f\u3042\u305d\u3053\u306b\u9e7f\u9cf4\u9928\u304c\u3042\u3063\u305f\u3093\u3060\u3088\u3002",
-            "averuni_normal",
-            null,
-            "ja-jp"
-        ],
-        [
-            "\u3042\u306e\u9053\u306e\u5411\u3053\u3046\u5074\u306b\u3001\u5927\u304d\u306a\u5efa\u7269\u304c\u3042\u308b\u3067\u3057\u3087\u3002\u6614\u306f\u3042\u305d\u3053\u306b\u9e7f\u9cf4\u9928\u304c\u3042\u3063\u305f\u3093\u3060\u3088\u3002",
-            "averuni_tanoshimi",
-            null,
-            "ja-jp"
-        ],
-        [
-            "\u3042\u306e\u9053\u306e\u5411\u3053\u3046\u5074\u306b\u3001\u5927\u304d\u306a\u5efa\u7269\u304c\u3042\u308b\u3067\u3057\u3087\u3002\u6614\u306f\u3042\u305d\u3053\u306b\u9e7f\u9cf4\u9928\u304c\u3042\u3063\u305f\u3093\u3060\u3088\u3002",
-            "averuni_yorokobi",
-            null,
-            "ja-jp"
-        ],
-        [
-            "\u3042\u306e\u9053\u306e\u5411\u3053\u3046\u5074\u306b\u3001\u5927\u304d\u306a\u5efa\u7269\u304c\u3042\u308b\u3067\u3057\u3087\u3002\u6614\u306f\u3042\u305d\u3053\u306b\u9e7f\u9cf4\u9928\u304c\u3042\u3063\u305f\u3093\u3060\u3088\u3002",
-            "millial_ikari",
-            null,
-            "ja-jp"
-        ],
-        [
-            "\u3042\u306e\u9053\u306e\u5411\u3053\u3046\u5074\u306b\u3001\u5927\u304d\u306a\u5efa\u7269\u304c\u3042\u308b\u3067\u3057\u3087\u3002\u6614\u306f\u3042\u305d\u3053\u306b\u9e7f\u9cf4\u9928\u304c\u3042\u3063\u305f\u3093\u3060\u3088\u3002",
-            "millial_kanashimi",
-            null,
-            "ja-jp"
-        ],
-        [
-            "\u3042\u306e\u9053\u306e\u5411\u3053\u3046\u5074\u306b\u3001\u5927\u304d\u306a\u5efa\u7269\u304c\u3042\u308b\u3067\u3057\u3087\u3002\u6614\u306f\u3042\u305d\u3053\u306b\u9e7f\u9cf4\u9928\u304c\u3042\u3063\u305f\u3093\u3060\u3088\u3002",
+            "あの道の向こう側に、大きな建物があるでしょ。昔はあそこに鹿鳴館があったんだよ。",
             "millial_normal",
-            null,
-            "ja-jp"
-        ],
-        [
-            "\u3042\u306e\u9053\u306e\u5411\u3053\u3046\u5074\u306b\u3001\u5927\u304d\u306a\u5efa\u7269\u304c\u3042\u308b\u3067\u3057\u3087\u3002\u6614\u306f\u3042\u305d\u3053\u306b\u9e7f\u9cf4\u9928\u304c\u3042\u3063\u305f\u3093\u3060\u3088\u3002",
-            "millial_tanoshimi",
-            null,
-            "ja-jp"
-        ],
-        [
-            "\u3042\u306e\u9053\u306e\u5411\u3053\u3046\u5074\u306b\u3001\u5927\u304d\u306a\u5efa\u7269\u304c\u3042\u308b\u3067\u3057\u3087\u3002\u6614\u306f\u3042\u305d\u3053\u306b\u9e7f\u9cf4\u9928\u304c\u3042\u3063\u305f\u3093\u3060\u3088\u3002",
-            "millial_yorokobi",
             null,
             "ja-jp"
         ]
     ],
     "use_speaker_embedding": true,
-    "use_d_vector_file": true,
+    "use_d_vector_file": false,
     "d_vector_dim": 512,
     "model_args": {
-        "num_chars": 284,
+        "num_chars": 165,
         "out_channels": 513,
         "spec_segment_size": 62,
         "hidden_channels": 192,
@@ -231,7 +143,7 @@
         "kernel_size_flow": 5,
         "dilation_rate_flow": 1,
         "num_layers_flow": 4,
-        "resblock_type_decoder": 2,
+        "resblock_type_decoder": "2",
         "resblock_kernel_sizes_decoder": [
             3,
             7,
@@ -270,26 +182,28 @@
         "use_sdp": true,
         "noise_scale": 1.0,
         "inference_noise_scale": 0.3,
-        "length_scale": 1,
+        "length_scale": 1.5,
         "noise_scale_dp": 0.6,
         "inference_noise_scale_dp": 0.3,
         "max_inference_len": null,
         "init_discriminator": true,
         "use_spectral_norm_disriminator": false,
         "use_speaker_embedding": true,
-        "num_speakers": 16,
+        "num_speakers": 1244,
         "speakers_file": null,
-        "d_vector_file": "/home/yuto_nishimura/workspace/python/yellston/TTS/exps/japanese_multispeaker_exp_20220228/d_vector_file.json",
+        "d_vector_file": null,
         "speaker_embedding_channels": 512,
-        "use_d_vector_file": true,
+        "use_d_vector_file": false,
         "d_vector_dim": 512,
         "detach_dp_input": true,
         "use_language_embedding": true,
         "embedded_language_dim": 4,
         "num_languages": 1,
-        "use_speaker_encoder_as_loss": true,
-        "speaker_encoder_config_path": "/home/yuto_nishimura/workspace/python/yellston/TTS/exps/japanese_multispeaker_exp_20220228/config_se.json",
-        "speaker_encoder_model_path": "/home/yuto_nishimura/workspace/python/yellston/TTS/exps/japanese_multispeaker_exp_20220228/model_se.pth.tar",
+        "use_accent_embedding": true,
+        "embedded_accent_dim": 256,
+        "use_speaker_encoder_as_loss": false,
+        "speaker_encoder_config_path": null,
+        "speaker_encoder_model_path": null,
         "fine_tuning_mode": 0,
         "freeze_encoder": false,
         "freeze_DP": false,
