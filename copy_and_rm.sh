@@ -2,8 +2,8 @@
 
 # # copy用テンプレ
 # rsync -ah --no-i-r --info=progress2 \
-#     abci-a_yell:/home/acd14006vc/gcd50804/yuto_nishimura/TTS/checkpoints/20220314_japanese_allial_four_emotion/ \
-#     /home/yuto_nishimura/workspace/python/yellston/TTS/checkpoints/20220314_japanese_allial_four_emotion/
+#     abci-a_yell:/home/acd14006vc/gcd50804/yuto_nishimura/TTS/checkpoints/20220314_japanese_allial_millial/ \
+#     /home/yuto_nishimura/workspace/python/yellston/TTS/checkpoints/20220314_japanese_allial_millial/
 
 # 一気にepoch系の重みを削除する
 

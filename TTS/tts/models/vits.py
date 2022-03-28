@@ -240,6 +240,8 @@ class VitsArgs(Coqpit):
     use_language_embedding: bool = False
     embedded_language_dim: int = 4
     num_languages: int = 0
+    use_accent_embedding: bool = False
+    embedded_accent_dim: int = 256
     use_speaker_encoder_as_loss: bool = False
     speaker_encoder_config_path: str = ""
     speaker_encoder_model_path: str = ""

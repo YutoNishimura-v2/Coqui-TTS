@@ -83,6 +83,7 @@ class CharactersConfig(Coqpit):
     characters: str = None
     punctuations: str = None
     phonemes: str = None
+    accents: str = None
     unique: bool = True  # for backwards compatibility of models trained with char sets with duplicates
 
     def check_values(
@@ -96,6 +97,7 @@ class CharactersConfig(Coqpit):
         check_argument("characters", c, prerequest="characters", restricted=True)
         check_argument("phonemes", c, restricted=True)
         check_argument("punctuations", c, prerequest="characters", restricted=True)
+        check_argument("accents", c, prerequest="characters", restricted=True)
 
 
 @dataclass
@@ -185,6 +187,7 @@ class BaseTTSConfig(BaseTrainingConfig):
     # phoneme settings
     use_phonemes: bool = False
     use_espeak_phonemes: bool = True
+    use_accent_info: bool = False
     phoneme_language: str = None
     compute_input_seq_cache: bool = False
     text_cleaner: str = None

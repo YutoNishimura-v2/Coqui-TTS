@@ -1214,9 +1214,6 @@ def process_args(args, config=None):
             config_base = BaseTrainingConfig()
             config_base.parse_known_args(coqpit_overrides)
             config = register_config(config_base.model)()
-    print(config)
-    print("hiiiii")
-    a
     # override values from command-line args
     config.parse_known_args(coqpit_overrides, relaxed_parser=True)
     experiment_path = args.continue_path

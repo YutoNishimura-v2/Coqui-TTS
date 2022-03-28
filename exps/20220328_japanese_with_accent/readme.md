@@ -5,12 +5,19 @@ python3 TTS/bin/train_tts.py \
 
 # アクセント追加するために変更した部分を記録しておく
 - config
-  - 「"use_accent_info": true」
-  - 「"accents": "012"」
-  - 「"use_accent_embedding": true」
-  - 「"embedded_accent_dim": 256」
+  - BaseTTSConfig:
+    - 「"use_accent_info": true」
+  - CharactersConfig:
+    - 「"accents": "012"」
+  - VitsArgs:
+    - 「"use_accent_embedding": true」
+    - 「"embedded_accent_dim": 256」
 
 ## memo
 - config
-  - ~「distributed_url」までが，「BaseTrainingConfig」で管理されている ~
-
+  - 「distributed_url」まで:「BaseTrainingConfig」で管理
+  - 「d_vector_dim」まで: 「BaseTTSConfig」で管理 (上のクラスを継承)
+  - 残り物: 「vits_config.py」で管理していることに注意
+    - 特に「model_args」は 「VitsArgs」で管理
+  
+  - 追加は上の構成に従ってやってみる．
