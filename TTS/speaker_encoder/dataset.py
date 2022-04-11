@@ -73,17 +73,22 @@ class SpeakerEncoderDataset(Dataset):
         return audio
 
     def load_data(self, idx):
-        text, wav_file, speaker_name = self.items[idx]
+        if len(self.items[idx]) == 3:
+            text, wav_file, speaker_name = self.items[idx]
+            wav_idx = 1
+        elif len(self.items[idx]) == 4:
+            text, accent, wav_file, speaker_name = self.items[idx]
+            wav_idx = 2
         wav = np.asarray(self.load_wav(wav_file), dtype=np.float32)
         mel = self.ap.melspectrogram(wav).astype("float32")
         # sample seq_len
 
-        assert text.size > 0, self.items[idx][1]
-        assert wav.size > 0, self.items[idx][1]
+        assert text.size > 0, self.items[idx][wav_idx]
+        assert wav.size > 0, self.items[idx][wav_idx]
 
         sample = {
             "mel": mel,
-            "item_idx": self.items[idx][1],
+            "item_idx": self.items[idx][wav_idx],
             "speaker_name": speaker_name,
         }
         return sample
@@ -91,8 +96,8 @@ class SpeakerEncoderDataset(Dataset):
     def __parse_items(self):
         self.speaker_to_utters = {}
         for i in self.items:
-            path_ = i[1]
-            speaker_ = i[2]
+            path_ = i[-2]
+            speaker_ = i[-1]
             if speaker_ in self.speaker_to_utters.keys():
                 self.speaker_to_utters[speaker_].append(path_)
             else:

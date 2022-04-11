@@ -3,6 +3,13 @@ python3 TTS/bin/train_tts.py \
     --config_path exps/20220328_japanese_with_accent/config.json \
     --restore_path exps/tts_models--multilingual--multi-dataset--your_tts/model_file.pth.tar
 
+## 現状
+全体としてはtrain_stepのcollate_fnまでいじっている
+あとは、IPAg2p周りのところをいじればデータ用意は完成というところ
+ただし、phonemesが設定済みのとは違うのと、phonemeが一文字である前提のコーディングになっているので良くない。
+phonemesの中にファイルパスを代わりに書くことで読み込むようなコードにする
+TTS/tts/utils/text/symbols.py ← ここに書く 多分 FilenotFoundのtryでやればいい参考: TTSDataset._load_or_generate_phoneme_sequence
+
 # アクセント追加するために変更した部分を記録しておく
 - config
   - BaseTTSConfig:
@@ -16,8 +23,9 @@ python3 TTS/bin/train_tts.py \
 
 - formatters.py
   - coefont_studio
-    - 「raw_text = raw_text + "_<accent>_" + accent_info」
-    - ↑この形でアクセント情報を追加
+    - spkのあとにアクセント情報を追加
+    - 最初は楽をするために「_<accent>_」なる文字を挟んでその後に入れようと思っていたけれど、汚いし、text cleanerによって除去されてしまう
+      - そこで処理から外せば良いといえばそうだけど、ちょっと汚い。それなら改造点は多くなってもいいからなんとかちゃんともたせる。
 
 ## memo
 - config
@@ -30,8 +38,83 @@ python3 TTS/bin/train_tts.py \
 
 - accent
   - IPAg2pを利用する
+    - python3.9だと、g2p-enとかを入れるときにエラーになる
+      - pip install https://github.com/lancopku/pkuseg-python/archive/master.zip
+      - これをすれば解決
+      - これだけだとだめで、以下の措置をする
+        - https://github.com/lancopku/pkuseg-python/releases/download/v0.0.16/mixed.zip
+        - これをダウンロードして、以下のフォルダを作成し、解凍した中身をそこにおく
+          - `/home/yuto_nishimura/miniconda3/envs/yourTTS/lib/python3.9/site-packages/pkuseg/models/default`
   - 日本語のみアクセント情報が追加で必要．
   - それ以外の言語は不要
-  - テキストの後半にアクセント情報も付記する形で保持する
-    - at 「formatters.py」
-    - そうすることで今までの形式は大きく変える必要をなくす
+  - テキストの直後に追加する
+    - こうしないと、別の場所だといろいろ齟齬が起きるので。
+  - configにおいて、phonemes にファイルパスを与えることでそこから音素リストを読み込めるようにした
+
+- 処理されていることを順番に見ていく。
+  - TTS/bin/train_tts.py
+    - Trainer()
+      - 「諸々の初期化を行っている」
+      - 「modelとかoptimizer用意したり」
+      - load_meta_data
+        - 「ここで、langはitemの末尾へという要請」
+      - Trainer.model.init_multispeaker
+        - Vits.init_multispeaker
+          - get_speaker_manager
+            - SpeakerManager.set_speaker_ids_from_data
+            - SpeakerManager.parse_speakers_from_data
+              - 「ここで、itemの[2]がspkという仮定が入っている」
+              - 「lenで場合分けしよう」
+              - 「他にも、「item[」「self.items」で検索して変更の必要がある部分を変えていく」
+      - Trainer.model.init_multispeaker
+        - Vits.init_multilingual
+          - get_language_manager
+            - LanguageManager.set_language_ids_from_data
+            - LanguageManager.parse_languages_from_data
+              - 「ここもspeaker同様の調整」
+    - Trainer.fit
+    - Trainer._fit
+    - Trainer.train_epoch
+      - Trainer._get_loader
+        - TTS/tts/models/base_tts.py
+          - BaseTTS.get_data_loader
+            - 「datasetのインスタンス化はここ」
+            - 「ちゃんと追加した引数をここで反映すること」
+            - 「compute_input_seq_cache = false にすることで、前もって音素にしてちゃんとseq lenをphoneme levelで数えてくれる」
+              - 「今まではここをfalseにしていたせいで日本語は日本語で音素数を数えていた」
+            - TTS/tts/datasets/TTSDataset.py
+              - TTSDataset.compute_input_seq
+                - 「ここで一旦phoneme onならphonemeの計算が入る」
+                - TTSDataset._phoneme_worker
+                  - 「ここで `text, wav_file, *_ = item` をやるので、itemの長さで場合分け。」
+                  - TTSDataset._load_or_generate_phoneme_sequence
+                    - TTSDataset._generate_and_cache_phoneme_sequence
+                      - TTS/tts/utils/text/__init__.py
+                        - phoneme_to_sequence
+                          - 「まさにIPAに改造するべき部分。詳しく見ていく」
+                          - _clean_text
+                            - TTS/tts/utils/text/cleaners.py
+                              - multilingual_cleaners
+                                - 「テキストクリーナー」
+                                - 「小文字にする→;とか&とかを別の文字に置き換え→カッコとかの除去→全角空白？の除去」
+                                - 「日本語とか変な記号いっぱいあるから突っ込むべきかも。特に全角系。」
+                          - text2phone
+                            - 「本願寺。ここに`use_IPAg2p_phonemes`を引数として追加する」
+                            - 「use_espeak_phonemesが使われていないけどこっちも使う予定ないし虫でいいや」
+                    - TTS/tts/utils/text/__init__.py
+                      - pad_with_eos_bos
+                        - 「enable_eos_bos_chars = True にすることで、音素の最初と最後に eos bos をつける。前後に無音があるなら使うべき」
+              - TTSDataset.sort_items
+                - 「日本語だけ特別扱いしていたが、それをやめる」
+      - TTSDataset.collate_fn
+        - TTSDataset.load_data
+          - 「_load_or_generate_phoneme_sequence再登場。引数にaccentとuse_IPAg2p_phonemesを渡す」
+          - 「sampleにaccent追加」
+        - 「collate_fn内でもaccentを追加」
+      - Trainer.train_step
+
+## TODO
+- TTS/tts/utils/text/cleaners.py: multilingual_cleaners
+  - 日本語用に変な記号を除去するcleanerを実装しても良さそう。ワンちゃんg2IPAとかが対応しているかもだけど
+- IPAg2pを行う際に`ver3`を決め打ちして使っているのでこれをconfigにかけるようにしたい
+- phoneme_to_sequence のreturnにaccentを追加したので、それの反映が必要

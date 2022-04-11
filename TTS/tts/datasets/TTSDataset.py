@@ -30,6 +30,8 @@ class TTSDataset(Dataset):
         min_seq_len: int = 0,
         max_seq_len: int = float("inf"),
         use_phonemes: bool = False,
+        use_IPAg2p_phonemes: bool = False,
+        use_accent_info: bool = False,
         phoneme_cache_path: str = None,
         phoneme_language: str = "en-us",
         enable_eos_bos: bool = False,
@@ -111,6 +113,8 @@ class TTSDataset(Dataset):
         self.custom_symbols = custom_symbols
         self.add_blank = add_blank
         self.use_phonemes = use_phonemes
+        self.use_IPAg2p_phonemes = use_IPAg2p_phonemes
+        self.use_accent_info = use_accent_info
         self.phoneme_cache_path = phoneme_cache_path
         self.phoneme_language = phoneme_language
         self.enable_eos_bos = enable_eos_bos
@@ -142,58 +146,78 @@ class TTSDataset(Dataset):
 
     @staticmethod
     def _generate_and_cache_phoneme_sequence(
-        text, cache_path, cleaners, language, custom_symbols, characters, add_blank
+        text, accent, cache_path, cache_path_accent, cleaners, language, custom_symbols, characters, add_blank, use_IPAg2p_phonemes
     ):
         """generate a phoneme sequence from text.
         since the usage is for subsequent caching, we never add bos and
         eos chars here. Instead we add those dynamically later; based on the
         config option."""
-        phonemes = phoneme_to_sequence(
+        phonemes, accents = phoneme_to_sequence(
             text,
+            accent,
             [cleaners],
             language=language,
+            use_IPAg2p_phonemes=use_IPAg2p_phonemes,
             enable_eos_bos=False,
             custom_symbols=custom_symbols,
             tp=characters,
             add_blank=add_blank,
         )
         phonemes = np.asarray(phonemes, dtype=np.int32)
+        accents = np.asarray(accents, dtype=np.int32)
         np.save(cache_path, phonemes)
-        return phonemes
+        np.save(cache_path_accent, accents)
+        return phonemes, accents
 
     @staticmethod
     def _load_or_generate_phoneme_sequence(
-        wav_file, text, phoneme_cache_path, enable_eos_bos, cleaners, language, custom_symbols, characters, add_blank
+        wav_file, text, accent, phoneme_cache_path, enable_eos_bos,
+        cleaners, language, custom_symbols, characters, add_blank, use_IPAg2p_phonemes
     ):
         file_name = os.path.splitext(os.path.basename(wav_file))[0]
 
         # different names for normal phonemes and with blank chars.
         file_name_ext = "_blanked_phoneme.npy" if add_blank else "_phoneme.npy"
         cache_path = os.path.join(phoneme_cache_path, file_name + file_name_ext)
+        cache_path_accent = os.path.join(phoneme_cache_path, file_name + "_accent" + file_name_ext)
         try:
             phonemes = np.load(cache_path)
+            accents = np.load(cache_path_accent)
         except FileNotFoundError:
-            phonemes = TTSDataset._generate_and_cache_phoneme_sequence(
-                text, cache_path, cleaners, language, custom_symbols, characters, add_blank
+            phonemes, accents = TTSDataset._generate_and_cache_phoneme_sequence(
+                text, accent, cache_path, cache_path_accent, cleaners, language, custom_symbols, characters, add_blank, use_IPAg2p_phonemes
             )
         except (ValueError, IOError):
             print(" [!] failed loading phonemes for {}. " "Recomputing.".format(wav_file))
-            phonemes = TTSDataset._generate_and_cache_phoneme_sequence(
-                text, cache_path, cleaners, language, custom_symbols, characters, add_blank
+            phonemes, accents = TTSDataset._generate_and_cache_phoneme_sequence(
+                text, accent, cache_path, cache_path_accent, cleaners, language, custom_symbols, characters, add_blank, use_IPAg2p_phonemes
             )
         if enable_eos_bos:
             phonemes = pad_with_eos_bos(phonemes, tp=characters)
             phonemes = np.asarray(phonemes, dtype=np.int32)
-        return phonemes
+        return phonemes, accents
 
     def load_data(self, idx):
         item = self.items[idx]
 
-        if len(item) == 5:
-            text, wav_file, speaker_name, language_name, attn_file = item
+        if len(item) == 6:
+            text, accent, wav_file, speaker_name, language_name, attn_file = item
+            wav_idx = 2
+        elif len(item) == 5:
+            if self.use_accent_info:
+                text, accent, wav_file, speaker_name, language_name = item
+                attn = None
+                wav_idx = 2
+            else:
+                text, wav_file, speaker_name, language_name, attn_file = item
+                accent = None
+                wav_idx = 1
         else:
             text, wav_file, speaker_name, language_name = item
+            accent = None
             attn = None
+            wav_idx = 1
+
         raw_text = text
 
         wav = np.asarray(self.load_wav(wav_file), dtype=np.float32)
@@ -204,9 +228,10 @@ class TTSDataset(Dataset):
 
         if not self.input_seq_computed:
             if self.use_phonemes:
-                text = self._load_or_generate_phoneme_sequence(
+                text, accent = self._load_or_generate_phoneme_sequence(
                     wav_file,
                     text,
+                    accent,
                     self.phoneme_cache_path,
                     self.enable_eos_bos,
                     self.cleaners,
@@ -214,6 +239,7 @@ class TTSDataset(Dataset):
                     self.custom_symbols,
                     self.characters,
                     self.add_blank,
+                    self.use_IPAg2p_phonemes
                 )
             else:
                 text = np.asarray(
@@ -227,8 +253,8 @@ class TTSDataset(Dataset):
                     dtype=np.int32,
                 )
 
-        assert text.size > 0, self.items[idx][1]
-        assert wav.size > 0, self.items[idx][1]
+        assert text.size > 0, self.items[idx][wav_idx]
+        assert wav.size > 0, self.items[idx][wav_idx]
 
         if "attn_file" in locals():
             attn = np.load(attn_file)
@@ -243,8 +269,9 @@ class TTSDataset(Dataset):
             "raw_text": raw_text,
             "text": text,
             "wav": wav,
+            "accent": accent,
             "attn": attn,
-            "item_idx": self.items[idx][1],
+            "item_idx": self.items[idx][wav_idx],
             "speaker_name": speaker_name,
             "language_name": language_name,
             "wav_file_name": os.path.basename(wav_file),
@@ -255,8 +282,14 @@ class TTSDataset(Dataset):
     def _phoneme_worker(args):
         item = args[0]
         func_args = args[1]
-        text, wav_file, *_ = item
-        phonemes = TTSDataset._load_or_generate_phoneme_sequence(wav_file, text, *func_args)
+        if len(item) == 4:
+            text, wav_file, *_ = item
+            accent = None
+        elif len(item) == 5:
+            text, accent, wav_file, *_ = item
+        else:
+            raise ValueError("itemの数がおかしいです。formattersを確認してください")
+        phonemes, _ = TTSDataset._load_or_generate_phoneme_sequence(wav_file, text, accent, *func_args)
         return phonemes
 
     def compute_input_seq(self, num_workers=0):
@@ -288,6 +321,7 @@ class TTSDataset(Dataset):
                 self.custom_symbols,
                 self.characters,
                 self.add_blank,
+                self.use_IPAg2p_phonemes,
             ]
             if self.verbose:
                 print(" | > Computing phonemes ...")
@@ -315,11 +349,7 @@ class TTSDataset(Dataset):
         ignored = []
         for i, idx in enumerate(idxs):
             length = lengths[idx]
-            lang = self.items[idx]
-            if lang == "ja-jp":
-                _min_seq_len = 11
-            else:
-                _min_seq_len = self.min_seq_len
+            _min_seq_len = self.min_seq_len
             if (length < _min_seq_len) or (length > self.max_seq_len):
                 ignored.append(idx)
             else:
@@ -371,6 +401,7 @@ class TTSDataset(Dataset):
             wav = [batch[idx]["wav"] for idx in ids_sorted_decreasing]
             item_idxs = [batch[idx]["item_idx"] for idx in ids_sorted_decreasing]
             text = [batch[idx]["text"] for idx in ids_sorted_decreasing]
+            accent = [batch[idx]["accent"] for idx in ids_sorted_decreasing]
             raw_text = [batch[idx]["raw_text"] for idx in ids_sorted_decreasing]
 
             speaker_names = [batch[idx]["speaker_name"] for idx in ids_sorted_decreasing]
@@ -423,6 +454,7 @@ class TTSDataset(Dataset):
             # convert things to pytorch
             text_lenghts = torch.LongTensor(text_lenghts)
             text = torch.LongTensor(text)
+            accent = torch.LongTensor(accent)
             mel = torch.FloatTensor(mel).contiguous()
             mel_lengths = torch.LongTensor(mel_lengths)
             stop_targets = torch.FloatTensor(stop_targets)
@@ -473,9 +505,13 @@ class TTSDataset(Dataset):
             else:
                 attns = None
             # TODO: return dictionary
+            print(accent)
+            print(text)
+            exit(1)
             return (
                 text,
                 text_lenghts,
+                accent,
                 speaker_names,
                 linear,
                 mel,

@@ -11,6 +11,9 @@ from TTS.tts.utils.text.chinese_mandarin.phonemizer import chinese_text_to_phone
 from TTS.tts.utils.text.japanese.phonemizer import japanese_text_to_phonemes
 from TTS.tts.utils.text.symbols import _bos, _eos, _punctuations, make_symbols, phonemes, symbols
 
+from IPAg2p.IPAg2p import IPAg2p
+
+
 # pylint: disable=unnecessary-comprehension
 # Mappings from symbol to numeric ID and vice versa:
 _symbol_to_id = {s: i for i, s in enumerate(symbols)}
@@ -32,7 +35,7 @@ PHONEME_PUNCTUATION_PATTERN = r"[" + _punctuations.replace(" ", "") + "]+"
 GRUUT_TRANS_TABLE = str.maketrans("g", "ɡ")
 
 
-def text2phone(text, language, use_espeak_phonemes=False):
+def text2phone(text, accent, language, use_IPAg2p_phonemes, use_espeak_phonemes=False):
     """Convert graphemes to phonemes.
     Parameters:
             text (str): text to phonemize
@@ -41,17 +44,32 @@ def text2phone(text, language, use_espeak_phonemes=False):
             ph (str): phonemes as a string seperated by "|"
                     ph = "ɪ|g|ˈ|z|æ|m|p|ə|l"
     """
+    if use_IPAg2p_phonemes:
+        if language == "ja-jp":
+            language = "japanese"
+        elif language == "zh-CN":
+            language = "chinese"
+        elif language == "en":
+            language = "english"
+        else:
+            raise RuntimeError(f"未対応の言語です: {language}")
+        g2p_model = IPAg2p(
+            language,
+            "./IPAg2p/phoneme_lists_versions/ver3"
+        )
+        output = g2p_model(text, accent)
+        return output["phoneme"], output["accent"]
 
     # TO REVIEW : How to have a good implementation for this?
     if language == "zh-CN":
         ph = chinese_text_to_phonemes(text)
         print(" > Phonemes: {}".format(ph))
-        return ph
+        return ph, None
 
     if language == "ja-jp":
         ph = japanese_text_to_phonemes(text)
         print(" > Phonemes: {}".format(ph))
-        return ph
+        return ph, None
 
     if gruut.is_language_supported(language):
         # Use gruut for phonemization
@@ -81,7 +99,7 @@ def text2phone(text, language, use_espeak_phonemes=False):
         # Fix a few phonemes
         ph = ph.translate(GRUUT_TRANS_TABLE)
 
-        return ph
+        return ph, None
 
     raise ValueError(f" [!] Language {language} is not supported for phonemization.")
 
@@ -106,8 +124,10 @@ def pad_with_eos_bos(phoneme_sequence, tp=None):
 
 def phoneme_to_sequence(
     text: str,
+    accent: str,
     cleaner_names: List[str],
     language: str,
+    use_IPAg2p_phonemes: bool,
     enable_eos_bos: bool = False,
     custom_symbols: List[str] = None,
     tp: Dict = None,
@@ -140,18 +160,29 @@ def phoneme_to_sequence(
 
     sequence = []
     clean_text = _clean_text(text, cleaner_names)
-    to_phonemes = text2phone(clean_text, language, use_espeak_phonemes=use_espeak_phonemes)
+    to_phonemes, accent = text2phone(clean_text, accent, language, use_IPAg2p_phonemes, use_espeak_phonemes=use_espeak_phonemes)
     if to_phonemes is None:
         print("!! After phoneme conversion the result is None. -- {} ".format(clean_text))
     # iterate by skipping empty strings - NOTE: might be useful to keep it to have a better intonation.
-    for phoneme in filter(None, to_phonemes.split("|")):
-        sequence += _phoneme_to_sequence(phoneme)
+    if type(to_phonemes) is str:
+        for phoneme in filter(None, to_phonemes.split("|")):
+            sequence += _phoneme_to_sequence(phoneme)
+    elif type(to_phonemes) is list:
+        # for use_IPAg2p_phonemes
+        for phoneme in to_phonemes:
+            sequence += _phoneme_to_sequence(phoneme)
+    else:
+        raise RuntimeError(f"to_phonemesのタイプがおかしいです: {type(to_phonemes)}")
+
+    print(to_phonemes)
+    print(sequence)
+    a
     # Append EOS char
     if enable_eos_bos:
         sequence = pad_with_eos_bos(sequence, tp=tp)
     if add_blank:
         sequence = intersperse(sequence, len(_phonemes))  # add a blank token (new), whose id number is len(_phonemes)
-    return sequence
+    return sequence, accent
 
 
 def sequence_to_phoneme(sequence: List, tp: Dict = None, add_blank=False, custom_symbols: List["str"] = None):

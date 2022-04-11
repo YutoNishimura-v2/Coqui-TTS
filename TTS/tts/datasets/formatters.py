@@ -450,9 +450,10 @@ def coefont_studio(root_path, meta_files=None, ununsed_speakers=None):
                 raw_text = values["text"]
 
             # アクセント情報がある場合利用
-            accent_info = values["accent"]
-
-            raw_text = raw_text + "_<accent>_" + accent_info
+            if "accent" in values.keys():
+                accent_info = values["accent"]
+            else:
+                accent_info = None
 
             speaker_name = meta_file.parent.parent.stem
             emotion_name = meta_file.parent.stem
@@ -465,5 +466,5 @@ def coefont_studio(root_path, meta_files=None, ununsed_speakers=None):
             wav_path = meta_file.parent / "wav" / (utt_id + ".wav")
 
             if wav_path.exists():
-                items.append([raw_text, str(wav_path), spk])
+                items.append([raw_text, accent_info, str(wav_path), spk])
     return items

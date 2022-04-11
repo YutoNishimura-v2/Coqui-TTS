@@ -266,6 +266,8 @@ class BaseTTS(BaseModel):
                 max_seq_len=config.max_seq_len,
                 phoneme_cache_path=config.phoneme_cache_path,
                 use_phonemes=config.use_phonemes,
+                use_IPAg2p_phonemes=config.use_IPAg2p_phonemes,
+                use_accent_info=config.use_accent_info,
                 phoneme_language=config.phoneme_language,
                 enable_eos_bos=config.enable_eos_bos_chars,
                 use_noise_augment=False if is_eval else config.use_noise_augment,

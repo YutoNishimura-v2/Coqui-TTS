@@ -56,7 +56,11 @@ class LanguageManager:
         Returns:
             Tuple[Dict, int]: language IDs and number of languages.
         """
-        languages = sorted({item[3] for item in items})
+        if len(items[0]) == 4:
+            lang_idx = 3
+        elif len(items[0]) == 5:
+            lang_idx = 4  # for accent対応
+        languages = sorted({item[lang_idx] for item in items})
         language_ids = {name: i for i, name in enumerate(languages)}
         num_languages = len(language_ids)
         return language_ids, num_languages
@@ -127,7 +131,11 @@ def get_language_manager(c: Coqpit, data: List = None, restore_path: str = None)
     return language_manager
 
 def get_language_weighted_sampler(items: list):
-    language_names = np.array([item[3] for item in items])
+    if len(items[0]) == 4:
+        lang_idx = 3
+    elif len(items[0]) == 5:
+        lang_idx = 4  # for accent対応
+    language_names = np.array([item[lang_idx] for item in items])
     unique_language_names = np.unique(language_names).tolist()
     language_ids = [unique_language_names.index(l) for l in language_names]
     language_count = np.array([len(np.where(language_names == l)[0]) for l in unique_language_names])
