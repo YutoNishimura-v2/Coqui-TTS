@@ -25,6 +25,7 @@ def text_to_seq(text, accent, CONFIG, custom_symbols=None):
                 accent,
                 text_cleaner,
                 CONFIG.phoneme_language,
+                CONFIG.use_IPAg2p_phonemes,
                 CONFIG.enable_eos_bos_chars,
                 tp=CONFIG.characters,
                 add_blank=CONFIG.add_blank,

@@ -983,7 +983,7 @@ class Vits(BaseTTS):
         for idx, s_info in enumerate(test_sentences):
             try:
                 aux_inputs = self.get_aux_input_from_test_setences(s_info)
-                wav, alignment, _, _ = synthesis(
+                wav, alignment, _, _, _ = synthesis(
                     self,
                     aux_inputs["text"],
                     aux_inputs["accent"],
@@ -1070,7 +1070,7 @@ class Vits(BaseTTS):
         whole training and inference steps."""
         
         if ".txt" in config.characters["phonemes"]:
-            with open(config.characters["phonemes"], 'r') as f:
+            with open(config.characters["phonemes"], 'r', encoding='utf-8') as f:
                 _pad = config.characters["pad"]
                 _punctuations = config.characters["punctuations"]
                 symbols = [_pad] + list(_punctuations) + [p.strip() for p in f.readlines()]

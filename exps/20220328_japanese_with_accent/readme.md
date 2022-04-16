@@ -4,12 +4,8 @@ python3 TTS/bin/train_tts.py \
     --restore_path exps/tts_models--multilingual--multi-dataset--your_tts/model_file.pth.tar
 
 ## 現状
-全体としてはtrain_stepのcollate_fnまでいじっている
-あとは、IPAg2p周りのところをいじればデータ用意は完成というところ
-ただし、phonemesが設定済みのとは違うのと、phonemeが一文字である前提のコーディングになっているので良くない。
-phonemesの中にファイルパスを代わりに書くことで読み込むようなコードにする
-
-TTS/tts/utils/text/symbols.py ← ここに書く 多分 FilenotFoundのtryでやればいい参考: TTSDataset._load_or_generate_phoneme_sequence
+テストセットを作るときにエラーが出てる
+IPAにしてないぽい?
 
 # アクセント追加するために変更した部分を記録しておく
 - config
