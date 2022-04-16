@@ -4,8 +4,8 @@ python3 TTS/bin/train_tts.py \
     --restore_path exps/tts_models--multilingual--multi-dataset--your_tts/model_file.pth.tar
 
 ## 現状
-テストセットを作るときにエラーが出てる
-IPAにしてないぽい?
+多分終了
+あとは使っていってデバッグがあれば
 
 # アクセント追加するために変更した部分を記録しておく
 - config
@@ -139,7 +139,9 @@ IPAにしてないぽい?
               - 「すでに改造していたので、これもアクセントを添えるだけ」
 ## TODO
 - TTS/tts/utils/text/cleaners.py: multilingual_cleaners
-  - 日本語用に変な記号を除去するcleanerを実装しても良さそう。ワンちゃんg2IPAとかが対応しているかもだけど
+  - 日本語用に変な記号を除去するcleanerを実装しても良さそう。ワンちゃんIPAg2pとかが対応しているかもだけど
+  - ↑むしろこっち側でやらないとだめ?
 - IPAg2pを行う際に`ver3`を決め打ちして使っているのでこれをconfigにかけるようにしたい
 - phoneme_to_sequence のreturnにaccentを追加したので、それの反映が必要
+  - 多分必要な場合には修正したので大丈夫
 - 補完について、実装的にアクセントに無駄tokenを埋められないので2倍に増やす形を撮ったが、もしかしたら無駄tokenのほうがいいかも
