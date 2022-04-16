@@ -1,5 +1,5 @@
 import os
-from typing import Dict
+from typing import Dict, Optional
 
 import numpy as np
 import pkg_resources
@@ -15,13 +15,14 @@ if "tensorflow" in installed or "tensorflow-gpu" in installed:
     import tensorflow as tf
 
 
-def text_to_seq(text, CONFIG, custom_symbols=None):
+def text_to_seq(text, accent, CONFIG, custom_symbols=None):
     text_cleaner = [CONFIG.text_cleaner]
     # text ot phonemes to sequence vector
     if CONFIG.use_phonemes:
-        seq = np.asarray(
+        seq, accent = np.asarray(
             phoneme_to_sequence(
                 text,
+                accent,
                 text_cleaner,
                 CONFIG.phoneme_language,
                 CONFIG.enable_eos_bos_chars,
@@ -39,7 +40,7 @@ def text_to_seq(text, CONFIG, custom_symbols=None):
             ),
             dtype=np.int32,
         )
-    return seq
+    return seq, accent
 
 
 def numpy_to_torch(np_array, dtype, cuda=False):
@@ -68,6 +69,7 @@ def compute_style_mel(style_wav, ap, cuda=False):
 def run_model_torch(
     model: nn.Module,
     inputs: torch.Tensor,
+    accents: Optional[torch.Tensor],
     speaker_id: int = None,
     style_mel: torch.Tensor = None,
     d_vector: torch.Tensor = None,
@@ -92,6 +94,7 @@ def run_model_torch(
         _func = model.inference
     outputs = _func(
         inputs,
+        accents,
         aux_input={
             "x_lengths": input_lengths,
             "speaker_ids": speaker_id,
@@ -201,6 +204,7 @@ def apply_griffin_lim(inputs, input_lens, CONFIG, ap):
 def synthesis(
     model,
     text,
+    accent,
     CONFIG,
     use_cuda,
     ap,
@@ -239,7 +243,7 @@ def synthesis(
     if hasattr(model, "make_symbols"):
         custom_symbols = model.make_symbols(CONFIG)
     # preprocess the given text
-    text_inputs = text_to_seq(text, CONFIG, custom_symbols=custom_symbols)
+    text_inputs, accent = text_to_seq(text, accent, CONFIG, custom_symbols=custom_symbols)
     # pass tensors to backend
     if backend == "torch":
         if speaker_id is not None:
@@ -255,6 +259,9 @@ def synthesis(
             style_mel = numpy_to_torch(style_mel, torch.float, cuda=use_cuda)
         text_inputs = numpy_to_torch(text_inputs, torch.long, cuda=use_cuda)
         text_inputs = text_inputs.unsqueeze(0)
+        if accent is not None:
+            accent = numpy_to_torch(accent, torch.long, cuda=use_cuda)
+            accent = accent.unsqueeze(0)
     elif backend in ["tf", "tflite"]:
         # TODO: handle speaker id for tf model
         style_mel = numpy_to_tf(style_mel, tf.float32)
@@ -262,7 +269,7 @@ def synthesis(
         text_inputs = tf.expand_dims(text_inputs, 0)
     # synthesize voice
     if backend == "torch":
-        outputs = run_model_torch(model, text_inputs, speaker_id, style_mel, d_vector=d_vector, language_id=language_id)
+        outputs = run_model_torch(model, text_inputs, accent, speaker_id, style_mel, d_vector=d_vector, language_id=language_id)
         model_outputs = outputs["model_outputs"]
         model_outputs = model_outputs[0].data.cpu().numpy()
         alignments = outputs["alignments"]
@@ -293,6 +300,7 @@ def synthesis(
         "wav": wav,
         "alignments": alignments,
         "text_inputs": text_inputs,
+        "accents": accent,
         "outputs": outputs,
     }
     return return_dict

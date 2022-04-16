@@ -5,6 +5,7 @@ import re
 from typing import Dict, List
 
 import gruut
+import numpy as np
 
 from TTS.tts.utils.text import cleaners
 from TTS.tts.utils.text.chinese_mandarin.phonemizer import chinese_text_to_phonemes
@@ -110,6 +111,14 @@ def intersperse(sequence, token):
     return result
 
 
+def intersperse_accent(accent):
+    # テキストが、毎phoneme間に無駄tokenを追加するので、それに対応してアクセントも。
+    # こっちは、2倍にする感じ
+    result = np.array([accent, accent]).T.reshape(-1)
+    result = list(result) + [accent[-1]]
+    return result
+
+
 def pad_with_eos_bos(phoneme_sequence, tp=None):
     # pylint: disable=global-statement
     global _phonemes_to_id, _bos, _eos
@@ -170,18 +179,17 @@ def phoneme_to_sequence(
     elif type(to_phonemes) is list:
         # for use_IPAg2p_phonemes
         for phoneme in to_phonemes:
-            sequence += _phoneme_to_sequence(phoneme)
+            sequence.append(_phonemes_to_id[phoneme])
     else:
         raise RuntimeError(f"to_phonemesのタイプがおかしいです: {type(to_phonemes)}")
 
-    print(to_phonemes)
-    print(sequence)
-    a
     # Append EOS char
     if enable_eos_bos:
         sequence = pad_with_eos_bos(sequence, tp=tp)
     if add_blank:
         sequence = intersperse(sequence, len(_phonemes))  # add a blank token (new), whose id number is len(_phonemes)
+        if accent is not None:
+            accent = intersperse_accent(accent)
     return sequence, accent
 
 

@@ -21,13 +21,18 @@ def setup_model(config):
         config.characters = parse_symbols()
     # consider special `blank` character if `add_blank` is set True
     num_chars = len(symbols) + getattr(config, "add_blank", False)
-    config.num_chars = num_chars
+    num_accents = len(config.characters["accents"])
+    config.num_accents = num_chars
+    config.num_accents = num_accents
     # compatibility fix
     if "model_params" in config:
         config.model_params.num_chars = num_chars
+        config.model_params.num_accents = num_accents
     if "model_args" in config:
         config.model_args.num_chars = num_chars
+        config.model_args.num_accents = num_accents
     model = MyModel(config)
+    
     return model
 
 

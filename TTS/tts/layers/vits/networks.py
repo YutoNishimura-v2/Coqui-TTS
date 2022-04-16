@@ -38,6 +38,9 @@ class TextEncoder(nn.Module):
         kernel_size: int,
         dropout_p: float,
         language_emb_dim: int = None,
+        use_accent_embedding: bool = False,
+        n_accents: int = 3,
+        embedded_accent_dim: int = 256,
     ):
         """Text Encoder for VITS model.
 
@@ -54,6 +57,7 @@ class TextEncoder(nn.Module):
         super().__init__()
         self.out_channels = out_channels
         self.hidden_channels = hidden_channels
+        self.embedded_accent_dim = embedded_accent_dim
 
         self.emb = nn.Embedding(n_vocab, hidden_channels)
 
@@ -61,6 +65,13 @@ class TextEncoder(nn.Module):
 
         if language_emb_dim:
             hidden_channels += language_emb_dim
+
+        if use_accent_embedding is True:
+            self.a_emb = nn.Embedding(n_accents, embedded_accent_dim)
+            nn.init.normal_(self.a_emb.weight, 0.0, embedded_accent_dim ** -0.5)
+            hidden_channels += embedded_accent_dim
+        else:
+            self.a_emb = None
 
         self.encoder = RelativePositionTransformer(
             in_channels=hidden_channels,
@@ -77,7 +88,7 @@ class TextEncoder(nn.Module):
 
         self.proj = nn.Conv1d(hidden_channels, out_channels * 2, 1)
 
-    def forward(self, x, x_lengths, lang_emb=None):
+    def forward(self, x, x_lengths, accents, lang_emb=None):
         """
         Shapes:
             - x: :math:`[B, T]`
@@ -88,6 +99,9 @@ class TextEncoder(nn.Module):
         # concat the lang emb in embedding chars
         if lang_emb is not None:
             x = torch.cat((x, lang_emb.transpose(2, 1).expand(x.size(0), x.size(1), -1)), dim=-1)
+        if accents is not None:
+            accents = self.a_emb(accents) * math.sqrt(self.embedded_accent_dim)
+            x = torch.cat([x, accents], dim=-1)
 
         x = torch.transpose(x, 1, -1)  # [b, h, t]
         x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)), 1).to(x.dtype)

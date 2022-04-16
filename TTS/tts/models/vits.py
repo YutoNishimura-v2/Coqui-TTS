@@ -1,7 +1,7 @@
 import math
 from dataclasses import dataclass, field
 from itertools import chain
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import torch
 import torchaudio
@@ -241,6 +241,7 @@ class VitsArgs(Coqpit):
     embedded_language_dim: int = 4
     num_languages: int = 0
     use_accent_embedding: bool = False
+    num_accents: int = 3
     embedded_accent_dim: int = 256
     use_speaker_encoder_as_loss: bool = False
     speaker_encoder_config_path: str = ""
@@ -318,7 +319,7 @@ class Vits(BaseTTS):
         self.noise_scale_dp = args.noise_scale_dp
         self.max_inference_len = args.max_inference_len
         self.spec_segment_size = args.spec_segment_size
-
+        
         self.text_encoder = TextEncoder(
             args.num_chars,
             args.hidden_channels,
@@ -328,7 +329,10 @@ class Vits(BaseTTS):
             args.num_layers_text_encoder,
             args.kernel_size_text_encoder,
             args.dropout_p_text_encoder,
-            language_emb_dim=self.embedded_language_dim
+            language_emb_dim=self.embedded_language_dim,
+            use_accent_embedding=args.use_accent_embedding,
+            n_accents=args.num_accents,
+            embedded_accent_dim=args.embedded_accent_dim,
         )
 
         self.posterior_encoder = PosteriorEncoder(
@@ -352,7 +356,7 @@ class Vits(BaseTTS):
 
         if args.use_sdp:
             self.duration_predictor = StochasticDurationPredictor(
-                args.hidden_channels + self.embedded_language_dim,
+                args.hidden_channels + self.embedded_language_dim + args.embedded_accent_dim,
                 192,
                 3,
                 args.dropout_p_duration_predictor,
@@ -362,7 +366,7 @@ class Vits(BaseTTS):
             )
         else:
             self.duration_predictor = DurationPredictor(
-                args.hidden_channels + self.embedded_language_dim,
+                args.hidden_channels + self.embedded_language_dim + args.embedded_accent_dim,
                 256,
                 3,
                 args.dropout_p_duration_predictor,
@@ -488,6 +492,7 @@ class Vits(BaseTTS):
         self,
         x: torch.tensor,
         x_lengths: torch.tensor,
+        accent: Optional[torch.tensor],
         y: torch.tensor,
         y_lengths: torch.tensor,
         aux_input={"d_vectors": None, "speaker_ids": None, "language_ids": None},
@@ -524,7 +529,7 @@ class Vits(BaseTTS):
         if self.args.use_language_embedding and lid is not None:
             lang_emb = self.emb_l(lid).unsqueeze(-1)
 
-        x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb)
+        x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, accent, lang_emb=lang_emb)
 
         # posterior encoder
         z, m_q, logs_q, y_mask = self.posterior_encoder(y, y_lengths, g=g)
@@ -615,6 +620,7 @@ class Vits(BaseTTS):
         self,
         x: torch.tensor,
         x_lengths: torch.tensor,
+        accent: Optional[torch.tensor],
         y: torch.tensor,
         y_lengths: torch.tensor,
         aux_input={"d_vectors": None, "speaker_ids": None, "language_ids": None},
@@ -652,7 +658,7 @@ class Vits(BaseTTS):
             if self.args.use_language_embedding and lid is not None:
                 lang_emb = self.emb_l(lid).unsqueeze(-1)
 
-            x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb)
+            x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, accent, lang_emb=lang_emb)
 
             # posterior encoder
             z, m_q, logs_q, y_mask = self.posterior_encoder(y, y_lengths, g=g)
@@ -728,7 +734,7 @@ class Vits(BaseTTS):
         )
         return outputs
 
-    def inference(self, x, aux_input={"d_vectors": None, "speaker_ids": None, "language_ids": None}):
+    def inference(self, x, accent, aux_input={"d_vectors": None, "speaker_ids": None, "language_ids": None}):
         """
         Shapes:
             - x: :math:`[B, T_seq]`
@@ -747,7 +753,7 @@ class Vits(BaseTTS):
         if self.args.use_language_embedding and lid is not None:
             lang_emb = self.emb_l(lid).unsqueeze(-1)
 
-        x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb)
+        x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, accent, lang_emb=lang_emb)
 
         if self.args.use_sdp:
             logw = self.duration_predictor(x, x_mask, g=g, reverse=True, noise_scale=self.inference_noise_scale_dp, lang_emb=lang_emb)
@@ -838,10 +844,10 @@ class Vits(BaseTTS):
         if self.args.freeze_waveform_decoder:
             for param in self.waveform_decoder.parameters():
                 param.requires_grad = False
-
         if optimizer_idx == 0:
             text_input = batch["text_input"]
             text_lengths = batch["text_lengths"]
+            accent = batch["accent"]
             mel_lengths = batch["mel_lengths"]
             linear_input = batch["linear_input"]
             d_vectors = batch["d_vectors"]
@@ -855,6 +861,7 @@ class Vits(BaseTTS):
                 outputs = self.forward_fine_tuning(
                     text_input,
                     text_lengths,
+                    accent,
                     linear_input.transpose(1, 2),
                     mel_lengths,
                     aux_input={"d_vectors": d_vectors, "speaker_ids": speaker_ids, "language_ids": language_ids},
@@ -864,6 +871,7 @@ class Vits(BaseTTS):
                 outputs = self.forward(
                     text_input,
                     text_lengths,
+                    accent,
                     linear_input.transpose(1, 2),
                     mel_lengths,
                     aux_input={"d_vectors": d_vectors, "speaker_ids": speaker_ids, "language_ids": language_ids},
@@ -978,6 +986,7 @@ class Vits(BaseTTS):
                 wav, alignment, _, _ = synthesis(
                     self,
                     aux_inputs["text"],
+                    aux_inputs["accent"],
                     self.config,
                     "cuda" in str(next(self.parameters()).device),
                     ap,
@@ -1059,13 +1068,20 @@ class Vits(BaseTTS):
     def make_symbols(config):
         """Create a custom arrangement of symbols used by the model. The output list of symbols propagate along the
         whole training and inference steps."""
-        _pad = config.characters["pad"]
-        _punctuations = config.characters["punctuations"]
-        _letters = config.characters["characters"]
-        _letters_ipa = config.characters["phonemes"]
-        symbols = [_pad] + list(_punctuations) + list(_letters)
-        if config.use_phonemes:
-            symbols += list(_letters_ipa)
+        
+        if ".txt" in config.characters["phonemes"]:
+            with open(config.characters["phonemes"], 'r') as f:
+                _pad = config.characters["pad"]
+                _punctuations = config.characters["punctuations"]
+                symbols = [_pad] + list(_punctuations) + [p.strip() for p in f.readlines()]
+        else:
+            _pad = config.characters["pad"]
+            _punctuations = config.characters["punctuations"]
+            _letters = config.characters["characters"]
+            _letters_ipa = config.characters["phonemes"]
+            symbols = [_pad] + list(_punctuations) + list(_letters)
+            if config.use_phonemes:
+                symbols += list(_letters_ipa)
         return symbols
 
     @staticmethod

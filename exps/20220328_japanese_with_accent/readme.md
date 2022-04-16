@@ -8,6 +8,7 @@ python3 TTS/bin/train_tts.py \
 あとは、IPAg2p周りのところをいじればデータ用意は完成というところ
 ただし、phonemesが設定済みのとは違うのと、phonemeが一文字である前提のコーディングになっているので良くない。
 phonemesの中にファイルパスを代わりに書くことで読み込むようなコードにする
+
 TTS/tts/utils/text/symbols.py ← ここに書く 多分 FilenotFoundのtryでやればいい参考: TTSDataset._load_or_generate_phoneme_sequence
 
 # アクセント追加するために変更した部分を記録しておく
@@ -19,6 +20,7 @@ TTS/tts/utils/text/symbols.py ← ここに書く 多分 FilenotFoundのtryで�
     - 「"accents": "012"」
   - VitsArgs:
     - 「"use_accent_embedding": true」
+    - 「"num_accents": 3」
     - 「"embedded_accent_dim": 256」
 
 - formatters.py
@@ -50,6 +52,8 @@ TTS/tts/utils/text/symbols.py ← ここに書く 多分 FilenotFoundのtryで�
   - テキストの直後に追加する
     - こうしないと、別の場所だといろいろ齟齬が起きるので。
   - configにおいて、phonemes にファイルパスを与えることでそこから音素リストを読み込めるようにした
+    - 何をIDとして用いるか、はもしtts model側で「make_symbol」という関数を定義したらそれが最優先で利用される
+      - なので、今回はそこでurlか否かを判断すると良さそう
 
 - 処理されていることを順番に見ていく。
   - TTS/bin/train_tts.py
@@ -101,6 +105,8 @@ TTS/tts/utils/text/symbols.py ← ここに書く 多分 FilenotFoundのtryで�
                           - text2phone
                             - 「本願寺。ここに`use_IPAg2p_phonemes`を引数として追加する」
                             - 「use_espeak_phonemesが使われていないけどこっちも使う予定ないし虫でいいや」
+                          - intersperse
+                            - 「vitsの、間に入れるやつ。これを、アクセントにも拡張しなきゃいけない」
                     - TTS/tts/utils/text/__init__.py
                       - pad_with_eos_bos
                         - 「enable_eos_bos_chars = True にすることで、音素の最初と最後に eos bos をつける。前後に無音があるなら使うべき」
@@ -112,9 +118,32 @@ TTS/tts/utils/text/symbols.py ← ここに書く 多分 FilenotFoundのtryで�
           - 「sampleにaccent追加」
         - 「collate_fn内でもaccentを追加」
       - Trainer.train_step
-
+        - Trainer.format_batch
+          - BaseTTS.format_batch
+            - 「ここで、アクセントも追加する」
+        - Vits.train_step
+          - 「acccentをforwardに渡す」
+          - Vits.forward
+            - 「テキストencoderにembeddingを足していく作業」
+            - 「configは自動でaccent数とかを反映させたい」 
+            - 「モデル改造周りはいつもどおりなので割愛」
+          - Vits.forward_fine_tuning
+            - 「同様」
+    - Trainer.eval_epoch
+      - 「中ではtrain_stepを使ったりしていて、つまり改造の必要はなさそう」
+    - Trainer.test_run
+      - Vits.test_run
+        - Vits.get_aux_input_from_test_setences
+          - 「アクセントを2番目で受け取るように設定」
+        - TTS/tts/utils/synthesis.py
+          - synthesis
+            - 「これはtextにaccentを添えるだけだった」
+            - 「なんかtfとかも回せるらしいけどtorch関連しか改造していません」
+            - Vits.inference
+              - 「すでに改造していたので、これもアクセントを添えるだけ」
 ## TODO
 - TTS/tts/utils/text/cleaners.py: multilingual_cleaners
   - 日本語用に変な記号を除去するcleanerを実装しても良さそう。ワンちゃんg2IPAとかが対応しているかもだけど
 - IPAg2pを行う際に`ver3`を決め打ちして使っているのでこれをconfigにかけるようにしたい
 - phoneme_to_sequence のreturnにaccentを追加したので、それの反映が必要
+- 補完について、実装的にアクセントに無駄tokenを埋められないので2倍に増やす形を撮ったが、もしかしたら無駄tokenのほうがいいかも

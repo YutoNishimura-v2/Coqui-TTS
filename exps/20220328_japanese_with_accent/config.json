@@ -74,7 +74,7 @@
         "bos": "*",
         "characters": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\u00af\u00b7\u00df\u00e0\u00e1\u00e2\u00e3\u00e4\u00e6\u00e7\u00e8\u00e9\u00ea\u00eb\u00ec\u00ed\u00ee\u00ef\u00f1\u00f2\u00f3\u00f4\u00f5\u00f6\u00f9\u00fa\u00fb\u00fc\u00ff\u0101\u0105\u0107\u0113\u0119\u011b\u012b\u0131\u0142\u0144\u014d\u0151\u0153\u015b\u016b\u0171\u017a\u017c\u01ce\u01d0\u01d2\u01d4\u0430\u0431\u0432\u0433\u0434\u0435\u0436\u0437\u0438\u0439\u043a\u043b\u043c\u043d\u043e\u043f\u0440\u0441\u0442\u0443\u0444\u0445\u0446\u0447\u0448\u0449\u044a\u044b\u044c\u044d\u044e\u044f\u0451\u0454\u0456\u0457\u0491\u2013!'(),-.:;? ",
         "punctuations": "!'(),-.:;? ",
-        "phonemes": "iy\u0268\u0289\u026fu\u026a\u028f\u028ae\u00f8\u0258\u0259\u0275\u0264o\u025b\u0153\u025c\u025e\u028c\u0254\u00e6\u0250a\u0276\u0251\u0252\u1d7b\u0298\u0253\u01c0\u0257\u01c3\u0284\u01c2\u0260\u01c1\u029bpbtd\u0288\u0256c\u025fk\u0261q\u0262\u0294\u0274\u014b\u0272\u0273n\u0271m\u0299r\u0280\u2c71\u027e\u027d\u0278\u03b2fv\u03b8\u00f0sz\u0283\u0292\u0282\u0290\u00e7\u029dx\u0263\u03c7\u0281\u0127\u0295h\u0266\u026c\u026e\u028b\u0279\u027bj\u0270l\u026d\u028e\u029f\u02c8\u02cc\u02d0\u02d1\u028dw\u0265\u029c\u02a2\u02a1\u0255\u0291\u027a\u0267\u025a\u02de\u026b'\u0303' ",
+        "phonemes": "IPAg2p/phoneme_lists_versions/ver3/phoneme_lists.txt",
         "accents": "012",
         "unique": true
     },
@@ -113,12 +113,14 @@
     "test_sentences": [
         [
             "あの道の向こう側に、大きな建物があるでしょ。昔はあそこに鹿鳴館があったんだよ。",
+            "",
             "allial_normal",
             null,
             "ja-jp"
         ],
         [
             "あの道の向こう側に、大きな建物があるでしょ。昔はあそこに鹿鳴館があったんだよ。",
+            "",
             "millial_normal",
             null,
             "ja-jp"
@@ -201,6 +203,7 @@
         "embedded_language_dim": 4,
         "num_languages": 1,
         "use_accent_embedding": true,
+        "num_accents": 3,
         "embedded_accent_dim": 256,
         "use_speaker_encoder_as_loss": false,
         "speaker_encoder_config_path": null,

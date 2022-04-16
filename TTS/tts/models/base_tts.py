@@ -103,17 +103,19 @@ class BaseTTS(BaseModel):
             config = self.config
 
         # extract speaker and language info
-        text, speaker_name, style_wav, language_name = None, None, None, None
+        text, accent, speaker_name, style_wav, language_name = None, None, None, None, None
 
         if isinstance(sentence_info, list):
             if len(sentence_info) == 1:
                 text = sentence_info[0]
             elif len(sentence_info) == 2:
-                text, speaker_name = sentence_info
+                text, accent = sentence_info
             elif len(sentence_info) == 3:
-                text, speaker_name, style_wav = sentence_info
+                text, accent, speaker_name = sentence_info
             elif len(sentence_info) == 4:
-                text, speaker_name, style_wav, language_name = sentence_info
+                text, accent, speaker_name, style_wav = sentence_info
+            elif len(sentence_info) == 5:
+                text, accent, speaker_name, style_wav, language_name = sentence_info
         else:
             text = sentence_info
 
@@ -135,7 +137,7 @@ class BaseTTS(BaseModel):
         if hasattr(self, "language_manager") and config.use_language_embedding and language_name is not None:
             language_id = self.language_manager.language_id_mapping[language_name]
 
-        return {"text": text, "speaker_id": speaker_id, "style_wav": style_wav, "d_vector": d_vector, "language_id": language_id}
+        return {"text": text, "accent": accent, "speaker_id": speaker_id, "style_wav": style_wav, "d_vector": d_vector, "language_id": language_id}
 
     def format_batch(self, batch: Dict) -> Dict:
         """Generic batch formatting for `TTSDataset`.
@@ -151,20 +153,21 @@ class BaseTTS(BaseModel):
         # setup input batch
         text_input = batch[0]
         text_lengths = batch[1]
-        speaker_names = batch[2]
-        linear_input = batch[3]
-        mel_input = batch[4]
-        mel_lengths = batch[5]
-        stop_targets = batch[6]
-        item_idx = batch[7]
-        d_vectors = batch[8]
-        speaker_ids = batch[9]
-        attn_mask = batch[10]
-        waveform = batch[11]
-        language_ids = batch[13]
+        accent = batch[2]
+        speaker_names = batch[3]
+        linear_input = batch[4]
+        mel_input = batch[5]
+        mel_lengths = batch[6]
+        stop_targets = batch[7]
+        item_idx = batch[8]
+        d_vectors = batch[9]
+        speaker_ids = batch[10]
+        attn_mask = batch[11]
+        waveform = batch[12]
+        language_ids = batch[14]
         max_text_length = torch.max(text_lengths.float())
         max_spec_length = torch.max(mel_lengths.float())
-
+        
         # compute durations from attention masks
         durations = None
         if attn_mask is not None:
@@ -194,6 +197,7 @@ class BaseTTS(BaseModel):
         return {
             "text_input": text_input,
             "text_lengths": text_lengths,
+            "accent": accent,
             "speaker_names": speaker_names,
             "mel_input": mel_input,
             "mel_lengths": mel_lengths,

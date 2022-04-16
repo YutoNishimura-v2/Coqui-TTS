@@ -444,6 +444,7 @@ class TTSDataset(Dataset):
 
             # PAD sequences with longest instance in the batch
             text = prepare_data(text).astype(np.int32)
+            accent = prepare_data(accent).astype(np.int32) if accent[0] is not None else accent
 
             # PAD features with longest instance
             mel = prepare_tensor(mel, self.outputs_per_step)
@@ -505,9 +506,6 @@ class TTSDataset(Dataset):
             else:
                 attns = None
             # TODO: return dictionary
-            print(accent)
-            print(text)
-            exit(1)
             return (
                 text,
                 text_lenghts,
