@@ -26,7 +26,7 @@ def tweb(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
             cols = line.split("\t")
             wav_file = os.path.join(root_path, cols[0] + ".wav")
             text = cols[1]
-            items.append([text, wav_file, speaker_name])
+            items.append([text, None, wav_file, speaker_name])
     return items
 
 
@@ -41,7 +41,7 @@ def mozilla(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
             wav_file = cols[1].strip()
             text = cols[0].strip()
             wav_file = os.path.join(root_path, "wavs", wav_file)
-            items.append([text, wav_file, speaker_name])
+            items.append([text, None, wav_file, speaker_name])
     return items
 
 
@@ -57,7 +57,7 @@ def mozilla_de(root_path, meta_file, **kwargs):  # pylint: disable=unused-argume
             text = cols[1].strip()
             folder_name = f"BATCH_{wav_file.split('_')[0]}_FINAL"
             wav_file = os.path.join(root_path, folder_name, wav_file)
-            items.append([text, wav_file, speaker_name])
+            items.append([text, None, wav_file, speaker_name])
     return items
 
 
@@ -97,7 +97,7 @@ def mailabs(root_path, meta_files=None, ununsed_speakers=None):
                     wav_file = os.path.join(root_path, folder.replace("metadata.csv", ""), "wavs", cols[0] + ".wav")
                 if os.path.isfile(wav_file):
                     text = cols[1].strip()
-                    items.append([text, wav_file, speaker_name])
+                    items.append([text, None, wav_file, speaker_name])
                 else:
                     # M-AI-Labs have some missing samples, so just print the warning
                     print("> File %s does not exist!" % (wav_file))
@@ -115,7 +115,7 @@ def ljspeech(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
             cols = line.split("|")
             wav_file = os.path.join(root_path, "wavs", cols[0] + ".wav")
             text = cols[1]
-            items.append([text, wav_file, speaker_name])
+            items.append([text, None, wav_file, speaker_name])
     return items
 
 
@@ -129,7 +129,7 @@ def ljspeech_test(root_path, meta_file, **kwargs):  # pylint: disable=unused-arg
             cols = line.split("|")
             wav_file = os.path.join(root_path, "wavs", cols[0] + ".wav")
             text = cols[1]
-            items.append([text, wav_file, f"ljspeech-{idx}"])
+            items.append([text, None, wav_file, f"ljspeech-{idx}"])
     return items
 
 
@@ -146,7 +146,7 @@ def sam_accenture(root_path, meta_file, **kwargs):  # pylint: disable=unused-arg
         if not os.path.exists(wav_file):
             print(f" [!] {wav_file} in metafile does not exist. Skipping...")
             continue
-        items.append([text, wav_file, speaker_name])
+        items.append([text, None, wav_file, speaker_name])
     return items
 
 
@@ -161,7 +161,7 @@ def ruslan(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
             cols = line.split("|")
             wav_file = os.path.join(root_path, "RUSLAN", cols[0] + ".wav")
             text = cols[1]
-            items.append([text, wav_file, speaker_name])
+            items.append([text, None, wav_file, speaker_name])
     return items
 
 
@@ -175,7 +175,7 @@ def css10(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
             cols = line.split("|")
             wav_file = os.path.join(root_path, cols[0])
             text = cols[1]
-            items.append([text, wav_file, speaker_name])
+            items.append([text, None, wav_file, speaker_name])
     return items
 
 
@@ -189,7 +189,7 @@ def nancy(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
             utt_id = line.split()[1]
             text = line[line.find('"') + 1 : line.rfind('"') - 1]
             wav_file = os.path.join(root_path, "wavn", utt_id + ".wav")
-            items.append([text, wav_file, speaker_name])
+            items.append([text, None, wav_file, speaker_name])
     return items
 
 
@@ -209,7 +209,7 @@ def common_voice(root_path, meta_file, ununsed_speakers=None):
                 if speaker_name in ununsed_speakers:
                     continue
             wav_file = os.path.join(root_path, "clips", cols[1].replace(".mp3", ".wav"))
-            items.append([text, wav_file, "MCV_" + speaker_name])
+            items.append([text, None, wav_file, "MCV_" + speaker_name])
     return items
 
 
@@ -223,22 +223,21 @@ def libri_tts(root_path, meta_files=None, ununsed_speakers=None):
             meta_files = [os.path.join(root_path, meta_files)]
 
     for meta_file in meta_files:
-        _meta_file = os.path.basename(meta_file).split(".")[0]
+        wav_base = Path(meta_file).parent
         with open(meta_file, "r") as ttf:
             for line in ttf:
                 cols = line.split("\t")
                 file_name = cols[0]
-                speaker_name, chapter_id, *_ = cols[0].split("_")
-                _root_path = os.path.join(root_path, f"{speaker_name}/{chapter_id}")
-                wav_file = os.path.join(_root_path, file_name + ".wav")
+                speaker_name, _, *_ = cols[0].split("_")
+                wav_file = wav_base / (file_name + ".wav")
                 text = cols[2]
                 # ignore speakers
                 if isinstance(ununsed_speakers, list):
                     if speaker_name in ununsed_speakers:
                         continue
-                items.append([text, wav_file, "LTTS_" + speaker_name])
+                items.append([text, None, wav_file, "LTTS_" + speaker_name])
     for item in items:
-        assert os.path.exists(item[1]), f" [!] wav files don't exist - {item[1]}"
+        assert os.path.exists(item[2]), f" [!] wav files don't exist - {item[2]}"
     return items
 
 
@@ -255,7 +254,7 @@ def custom_turkish(root_path, meta_file, **kwargs):  # pylint: disable=unused-ar
                 skipped_files.append(wav_file)
                 continue
             text = cols[1].strip()
-            items.append([text, wav_file, speaker_name])
+            items.append([text, None, wav_file, speaker_name])
     print(f" [!] {len(skipped_files)} files skipped. They don't exist...")
     return items
 
@@ -277,7 +276,7 @@ def brspeech(root_path, meta_file, ununsed_speakers=None):
             if isinstance(ununsed_speakers, list):
                 if speaker_id in ununsed_speakers:
                     continue
-            items.append([text, wav_file, speaker_id])
+            items.append([text, None, wav_file, speaker_id])
     return items
 
 
@@ -295,7 +294,7 @@ def vctk(root_path, meta_files=None, wavs_path="wav48", ununsed_speakers=None):
         with open(meta_file) as file_text:
             text = file_text.readlines()[0]
         wav_file = os.path.join(root_path, wavs_path, speaker_id, file_id + ".wav")
-        items.append([text, wav_file, "VCTK_" + speaker_id])
+        items.append([text, None, wav_file, "VCTK_" + speaker_id])
 
     return items
 
@@ -312,7 +311,7 @@ def vctk_slim(root_path, meta_files=None, wavs_path="wav48", ununsed_speakers=No
             if speaker_id in ununsed_speakers:
                 continue
         wav_file = os.path.join(root_path, wavs_path, speaker_id, file_id + ".wav")
-        items.append([None, wav_file, "VCTK_" + speaker_id])
+        items.append([None, None, wav_file, "VCTK_" + speaker_id])
 
     return items
 
@@ -330,58 +329,58 @@ def mls(root_path, meta_files=None, ununsed_speakers=None):
             if isinstance(ununsed_speakers, list):
                 if speaker in ununsed_speakers:
                     continue
-            items.append([text, wav_file, "MLS_" + speaker])
+            items.append([text, None, wav_file, "MLS_" + speaker])
     return items
 
 
-# ======================================== VOX CELEB ===========================================
-def voxceleb2(root_path, meta_file=None, **kwargs):  # pylint: disable=unused-argument
-    """
-    :param meta_file   Used only for consistency with load_meta_data api
-    """
-    return _voxcel_x(root_path, meta_file, voxcel_idx="2")
+# # ======================================== VOX CELEB ===========================================
+# def voxceleb2(root_path, meta_file=None, **kwargs):  # pylint: disable=unused-argument
+#     """
+#     :param meta_file   Used only for consistency with load_meta_data api
+#     """
+#     return _voxcel_x(root_path, meta_file, voxcel_idx="2")
 
 
-def voxceleb1(root_path, meta_file=None, **kwargs):  # pylint: disable=unused-argument
-    """
-    :param meta_file   Used only for consistency with load_meta_data api
-    """
-    return _voxcel_x(root_path, meta_file, voxcel_idx="1")
+# def voxceleb1(root_path, meta_file=None, **kwargs):  # pylint: disable=unused-argument
+#     """
+#     :param meta_file   Used only for consistency with load_meta_data api
+#     """
+#     return _voxcel_x(root_path, meta_file, voxcel_idx="1")
 
 
-def _voxcel_x(root_path, meta_file, voxcel_idx):
-    assert voxcel_idx in ["1", "2"]
-    expected_count = 148_000 if voxcel_idx == "1" else 1_000_000
-    voxceleb_path = Path(root_path)
-    cache_to = voxceleb_path / f"metafile_voxceleb{voxcel_idx}.csv"
-    cache_to.parent.mkdir(exist_ok=True)
+# def _voxcel_x(root_path, meta_file, voxcel_idx):
+#     assert voxcel_idx in ["1", "2"]
+#     expected_count = 148_000 if voxcel_idx == "1" else 1_000_000
+#     voxceleb_path = Path(root_path)
+#     cache_to = voxceleb_path / f"metafile_voxceleb{voxcel_idx}.csv"
+#     cache_to.parent.mkdir(exist_ok=True)
 
-    # if not exists meta file, crawl recursively for 'wav' files
-    if meta_file is not None:
-        with open(str(meta_file), "r") as f:
-            return [x.strip().split("|") for x in f.readlines()]
+#     # if not exists meta file, crawl recursively for 'wav' files
+#     if meta_file is not None:
+#         with open(str(meta_file), "r") as f:
+#             return [x.strip().split("|") for x in f.readlines()]
 
-    elif not cache_to.exists():
-        cnt = 0
-        meta_data = []
-        wav_files = voxceleb_path.rglob("**/*.wav")
-        for path in tqdm(
-            wav_files,
-            desc=f"Building VoxCeleb {voxcel_idx} Meta file ... this needs to be done only once.",
-            total=expected_count,
-        ):
-            speaker_id = str(Path(path).parent.parent.stem)
-            assert speaker_id.startswith("id")
-            text = None  # VoxCel does not provide transciptions, and they are not needed for training the SE
-            meta_data.append(f"{text}|{path}|voxcel{voxcel_idx}_{speaker_id}\n")
-            cnt += 1
-        with open(str(cache_to), "w") as f:
-            f.write("".join(meta_data))
-        if cnt < expected_count:
-            raise ValueError(f"Found too few instances for Voxceleb. Should be around {expected_count}, is: {cnt}")
+#     elif not cache_to.exists():
+#         cnt = 0
+#         meta_data = []
+#         wav_files = voxceleb_path.rglob("**/*.wav")
+#         for path in tqdm(
+#             wav_files,
+#             desc=f"Building VoxCeleb {voxcel_idx} Meta file ... this needs to be done only once.",
+#             total=expected_count,
+#         ):
+#             speaker_id = str(Path(path).parent.parent.stem)
+#             assert speaker_id.startswith("id")
+#             text = None  # VoxCel does not provide transciptions, and they are not needed for training the SE
+#             meta_data.append(f"{text}|{path}|voxcel{voxcel_idx}_{speaker_id}\n")
+#             cnt += 1
+#         with open(str(cache_to), "w") as f:
+#             f.write("".join(meta_data))
+#         if cnt < expected_count:
+#             raise ValueError(f"Found too few instances for Voxceleb. Should be around {expected_count}, is: {cnt}")
 
-    with open(str(cache_to), "r") as f:
-        return [x.strip().split("|") for x in f.readlines()]
+#     with open(str(cache_to), "r") as f:
+#         return [x.strip().split("|") for x in f.readlines()]
 
 
 def baker(root_path: str, meta_file: str, **kwargs) -> List[List[str]]:  # pylint: disable=unused-argument
@@ -400,7 +399,7 @@ def baker(root_path: str, meta_file: str, **kwargs) -> List[List[str]]:  # pylin
         for line in ttf:
             wav_name, text = line.rstrip("\n").split("|")
             wav_path = os.path.join(root_path, "clips_22", wav_name)
-            items.append([text, wav_path, speaker_name])
+            items.append([text, None, wav_path, speaker_name])
     return items
 
 
@@ -414,7 +413,7 @@ def kokoro(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
             cols = line.split("|")
             wav_file = os.path.join(root_path, "wavs", cols[0] + ".wav")
             text = cols[2].replace(" ", "")
-            items.append([text, wav_file, speaker_name])
+            items.append([text, None, wav_file, speaker_name])
     return items
 
 
@@ -430,7 +429,7 @@ def jsut(root_path, meta_files=None, ununsed_speakers=None, **kwargs):
             file_stem, raw_text = text_line.split(":")
             wav_path = meta_file.parent / "wav" / (file_stem + ".wav")
             if wav_path.exists():
-                items.append([raw_text.strip(), str(wav_path), 'jsut'])
+                items.append([raw_text.strip(), None, str(wav_path), 'jsut'])
     return items
 
 
@@ -467,4 +466,50 @@ def coefont_studio(root_path, meta_files=None, ununsed_speakers=None):
 
             if wav_path.exists():
                 items.append([raw_text, accent_info, str(wav_path), spk])
+    return items
+
+def coefont_cloud_all(root_path, meta_files=None, ununsed_speakers=None):
+    # ununsed_speakers を真逆の意味で使います
+    # TODO: emotionガン無視なのでもしかしたら考慮いるかも
+    items = []
+    root_path = Path(root_path)
+    meta_files = root_path.glob("**/*.json")
+    wav_files = root_path.glob("**/*.wav")
+    all_text = {}
+    for meta_file in meta_files:
+        with open(meta_file, "r") as f:
+            json_data = json.load(f)
+            all_text.update(json_data)
+    
+    _ununsed_speakers = []
+    if ununsed_speakers is not None:
+        for _spk in ununsed_speakers:
+            if Path(_spk).exists() is True:
+                with open(_spk, 'r') as f:
+                    _ununsed_speakers += [spk.strip() for spk in f.readlines()]
+            else:
+                _ununsed_speakers += [_spk]
+    ununsed_speakers = _ununsed_speakers
+
+    for wav_path in wav_files:
+        speaker_name = wav_path.parent.stem
+        if (ununsed_speakers is not None) and (speaker_name not in ununsed_speakers):
+            continue
+
+        if wav_path.stem in all_text.keys():
+            values = all_text[wav_path.stem]
+            if "yomi" in values.keys():
+                raw_text = values["yomi"]
+            else:
+                # 例: millial/normalはyomiがない
+                raw_text = values["text"]
+
+            # アクセント情報がある場合利用
+            if "accent" in values.keys():
+                accent_info = values["accent"]
+            else:
+                accent_info = None
+
+            items.append([raw_text, accent_info, str(wav_path), speaker_name])
+    
     return items
