@@ -28,3 +28,24 @@ Traceback (most recent call last):
     raise RuntimeError(
 RuntimeError: Timed out initializing process group in store based barrier on rank: 0, for key: store_based_barrier_key:1 (world_size=8, worker_count=1, timeout=0:30:00)
 ```
+
+- まず、実行のやり方から違う。これは Coquitの https://github.com/coqui-ai/TTS/blob/main/docs/source/faq.md ここに。
+  - 普通にやってしまうと動かなくなる (ctrl+C が動かない)
+- addressは、一度使うと再起動しないとだめらしいので、config からアドレスをいちいち変えて実験する必要あり
+
+- log が作れていないのが気になったので、"./"をログパスにつけてみた
+  - うまく動いて、しかも今まで進まなかったところから進むようになった。
+  - 一方で、別のエラー: `FileNotFoundError: [Errno 2] No such file or directory: 'exps/tts_models--multilingual--multi-dataset--your_tts/model_file.pth.tar'`
+  - これ、outputの件もそうだけど、パスの指定が悪い気がしてきた。ちゃんと相対パスで書くことにする。
+  - 相対パスで書いても無駄だった。
+  - しかも、一番上のをもう一回試したけどだめ。再現性なし
+
+- ↑多分解決。想像舌原因: multi-processなのにopenをしているだけで、withがない。
+  - つまりなんか同時に開いてしまったりしてopenはそれはできないのではないかという仮設
+  - 実際、sleepを挟んであげたら何回試してもうまく動いた。やった。
+
+- 動いた。本当にここだけが問題だった。
+
+- batchサイズに関しては、現状 52 だけど、https://aru47.hatenablog.com/entry/2020/11/06/225052 ここにあることを考えるならGPUに比例してbatchは増やす上に、lrもちょっといじる必要があるそう。調整しなきゃ？
+
+- ↑一度実験的にやってみる。8倍までやるのと、シングルとの実行速度比較。

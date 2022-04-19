@@ -3,19 +3,27 @@
 # 例: qrsh -g $ABCI_GROUP -l rt_AF=1 -l h_rt=10:00:00
 
 source /etc/profile.d/modules.sh
-# module load gcc/9.3.0 python/3.8/3.8.7 cuda/11.1/11.1.1 cudnn/8.0/8.0.5  # for rt_AG.small
-module load gcc/11.2.0 python/3.8/3.8.13 cuda/11.1/11.1.1 cudnn/8.0/8.0.5  # for rt_AF
+# module load gcc/9.3.0 python/3.8/3.8.7 cuda/11.1/11.1.1 cudnn/8.0/8.0.5
+module load gcc/11.2.0 python/3.8/3.8.13 cuda/11.1/11.1.1 cudnn/8.0/8.0.5 nccl/2.8/2.8.4-1 # for rt_AF
 source ~/venv/yourTTS/bin/activate
 
-# 具体的処理
-cd /groups/4/gcd50804/yuto_nishimura/TTS  # node A
-export PYTHONPATH="/groups/4/gcd50804/yuto_nishimura/TTS:$PYTHONPATH"  # node A
+# For batch node
+cd /groups/4/gcd50804/yuto_nishimura/workspace/python/yellston/TTS  # node A
+export PYTHONPATH="/groups/4/gcd50804/yuto_nishimura/workspace/python/yellston/TTS"  # node A
 
+# For interactive node
+# cd /home/acd14006vc/gcd50804/yuto_nishimura/workspace/python/yellston/TTS
+# export PYTHONPATH="/home/acd14006vc/gcd50804/yuto_nishimura/workspace/python/yellston/TTS"  # node A
+
+# 実行
+
+# single-GPU
 # python3 TTS/bin/train_tts.py \
 #     --config_path exps/20220417_pro/config.json \
 #     --restore_path exps/tts_models--multilingual--multi-dataset--your_tts/model_file.pth.tar \
-python3 TTS/bin/train_tts.py \
+
+# multi-GPU
+python3 TTS/bin/distribute.py --script TTS/bin/train_tts.py \
     --config_path exps/20220417_pro/config.json \
-    --restore_path exps/tts_models--multilingual--multi-dataset--your_tts/model_file.pth.tar \
-    --use_ddp true
+    --restore_path exps/tts_models--multilingual--multi-dataset--your_tts/model_file.pth.tar
 deactivate

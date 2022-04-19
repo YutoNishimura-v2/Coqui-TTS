@@ -1003,10 +1003,14 @@ class Trainer:
         TODO: Causes formatting issues in pdb debugging."""
 
         class Logger(object):
-            def __init__(self, print_to_terminal=True):
+            def __init__(self, print_to_terminal=True, rank=0):
                 self.print_to_terminal = print_to_terminal
                 self.terminal = sys.stdout
-                self.log = open(log_file, "a")
+                try:
+                    self.log = open(log_file, "a")
+                except FileNotFoundError:
+                    time.sleep(rank)
+                    self.log = open(log_file, "a")
 
             def write(self, message):
                 if self.print_to_terminal:
@@ -1020,7 +1024,7 @@ class Trainer:
                 pass
 
         # don't let processes rank > 0 write to the terminal
-        sys.stdout = Logger(self.args.rank == 0)
+        sys.stdout = Logger(self.args.rank == 0, self.args.rank)
 
     @staticmethod
     def _is_apex_available() -> bool:
