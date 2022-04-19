@@ -1,0 +1,13 @@
+# 森川さん+eng
+- (20220417_pro_eng_singleGPU_batch_52_202204192250)
+    - 森川さん+LibriTTS  
+    - jobID: 
+    - multi-GPUの比較用。
+    - なぜかプロセスが死んでしまうので一旦保留
+- 20220417_pro_eng_multiGPU_batch_52
+    - 森川さん+LibriTTS  
+    - jobID: 9826449
+- 20220417_pro_eng_multiGPU_batch_104
+    - 森川さん+LibriTTS  
+    - jobID: 
+    - メモリ乗らず。厳しい。

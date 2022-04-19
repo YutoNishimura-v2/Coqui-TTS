@@ -15,7 +15,7 @@ if "tensorflow" in installed or "tensorflow-gpu" in installed:
     import tensorflow as tf
 
 
-def text_to_seq(text, accent, CONFIG, custom_symbols=None):
+def text_to_seq(text, accent, language, CONFIG, custom_symbols=None):
     text_cleaner = [CONFIG.text_cleaner]
     # text ot phonemes to sequence vector
     if CONFIG.use_phonemes:
@@ -24,7 +24,7 @@ def text_to_seq(text, accent, CONFIG, custom_symbols=None):
                 text,
                 accent,
                 text_cleaner,
-                CONFIG.phoneme_language,
+                language,
                 CONFIG.use_IPAg2p_phonemes,
                 CONFIG.enable_eos_bos_chars,
                 tp=CONFIG.characters,
@@ -206,6 +206,7 @@ def synthesis(
     model,
     text,
     accent,
+    language,
     CONFIG,
     use_cuda,
     ap,
@@ -244,7 +245,7 @@ def synthesis(
     if hasattr(model, "make_symbols"):
         custom_symbols = model.make_symbols(CONFIG)
     # preprocess the given text
-    text_inputs, accent = text_to_seq(text, accent, CONFIG, custom_symbols=custom_symbols)
+    text_inputs, accent = text_to_seq(text, accent, language, CONFIG, custom_symbols=custom_symbols)
     # pass tensors to backend
     if backend == "torch":
         if speaker_id is not None:

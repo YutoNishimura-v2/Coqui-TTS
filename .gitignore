@@ -3,7 +3,9 @@ datasets/
 !TTS/tts/datasets/
 *.npy
 *.pth.tar
-checkpoints/
+*log.txt
+
+events.*
 
 speakers.json
 d_vector_file.json

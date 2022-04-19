@@ -49,3 +49,4 @@ RuntimeError: Timed out initializing process group in store based barrier on ran
 - batchサイズに関しては、現状 52 だけど、https://aru47.hatenablog.com/entry/2020/11/06/225052 ここにあることを考えるならGPUに比例してbatchは増やす上に、lrもちょっといじる必要があるそう。調整しなきゃ？
 
 - ↑一度実験的にやってみる。8倍までやるのと、シングルとの実行速度比較。
+- 以下はpro+engの方。

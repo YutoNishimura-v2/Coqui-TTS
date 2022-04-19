@@ -283,12 +283,13 @@ class TTSDataset(Dataset):
         item = args[0]
         func_args = args[1]
         if len(item) == 4:
-            text, wav_file, *_ = item
+            text, wav_file, _, lang = item
             accent = None
         elif len(item) == 5:
-            text, accent, wav_file, *_ = item
+            text, accent, wav_file, _, lang = item
         else:
             raise ValueError("itemの数がおかしいです。formattersを確認してください")
+        func_args[3] = lang  # 言語はこれを使うときに"self.phoneme_language"になってしまっているので更新。ここ以前で受け取れず。
         phonemes, _ = TTSDataset._load_or_generate_phoneme_sequence(wav_file, text, accent, *func_args)
         return phonemes
 

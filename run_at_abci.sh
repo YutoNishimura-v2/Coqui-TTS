@@ -1,29 +1,23 @@
-# 例: qsub_Ag1 -l h_rt='150:00:00' -o ~/logs/yourTTS/202203_japanese+eng+fr_202203140831.log run_at_abci.sh
+# 例: qsub_Ag1 -l h_rt='150:00:00' -o ~/logs/yourTTS/20220417_pro_eng_singleGPU_batch_52_202204192301.log run_at_abci.sh
+# 例: qsub_Afull -l h_rt='70:00:00' -o ~/logs/yourTTS/20220417_pro_eng_multiGPU_batch_52_202204200128.log run_at_abci.sh
 # 例: qrsh -g $ABCI_GROUP -l rt_AG.small=1 -l h_rt=10:00:00
 # 例: qrsh -g $ABCI_GROUP -l rt_AF=1 -l h_rt=10:00:00
 
 source /etc/profile.d/modules.sh
-# module load gcc/9.3.0 python/3.8/3.8.7 cuda/11.1/11.1.1 cudnn/8.0/8.0.5
-module load gcc/11.2.0 python/3.8/3.8.13 cuda/11.1/11.1.1 cudnn/8.0/8.0.5 nccl/2.8/2.8.4-1 # for rt_AF
+module load gcc/11.2.0 python/3.8/3.8.13 cuda/11.1/11.1.1 cudnn/8.0/8.0.5 nccl/2.8/2.8.4-1
 source ~/venv/yourTTS/bin/activate
 
-# For batch node
 cd /groups/4/gcd50804/yuto_nishimura/workspace/python/yellston/TTS  # node A
-export PYTHONPATH="/groups/4/gcd50804/yuto_nishimura/workspace/python/yellston/TTS"  # node A
+export PYTHONPATH="/groups/4/gcd50804/yuto_nishimura/workspace/python/yellston/TTS:$PYTHONPATH"  # node A
 
-# For interactive node
-# cd /home/acd14006vc/gcd50804/yuto_nishimura/workspace/python/yellston/TTS
-# export PYTHONPATH="/home/acd14006vc/gcd50804/yuto_nishimura/workspace/python/yellston/TTS"  # node A
-
-# 実行
-
-# single-GPU
+# # single-GPU
 # python3 TTS/bin/train_tts.py \
-#     --config_path exps/20220417_pro/config.json \
-#     --restore_path exps/tts_models--multilingual--multi-dataset--your_tts/model_file.pth.tar \
+#     --config_path exps/20220417_pro_eng/config.json \
+#     --restore_path exps/tts_models--multilingual--multi-dataset--your_tts/model_file.pth.tar
 
-# multi-GPU
+# # multi-GPU
 python3 TTS/bin/distribute.py --script TTS/bin/train_tts.py \
-    --config_path exps/20220417_pro/config.json \
+    --config_path exps/20220417_pro_eng/config.json \
     --restore_path exps/tts_models--multilingual--multi-dataset--your_tts/model_file.pth.tar
+
 deactivate

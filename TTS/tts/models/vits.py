@@ -987,6 +987,7 @@ class Vits(BaseTTS):
                     self,
                     aux_inputs["text"],
                     aux_inputs["accent"],
+                    aux_inputs["language"],
                     self.config,
                     "cuda" in str(next(self.parameters()).device),
                     ap,

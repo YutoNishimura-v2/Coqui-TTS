@@ -137,7 +137,7 @@ class BaseTTS(BaseModel):
         if hasattr(self, "language_manager") and config.use_language_embedding and language_name is not None:
             language_id = self.language_manager.language_id_mapping[language_name]
 
-        return {"text": text, "accent": accent, "speaker_id": speaker_id, "style_wav": style_wav, "d_vector": d_vector, "language_id": language_id}
+        return {"text": text, "accent": accent, "language": language_name, "speaker_id": speaker_id, "style_wav": style_wav, "d_vector": d_vector, "language_id": language_id}
 
     def format_batch(self, batch: Dict) -> Dict:
         """Generic batch formatting for `TTSDataset`.
