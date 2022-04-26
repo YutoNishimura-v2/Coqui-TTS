@@ -1,5 +1,5 @@
 # 例: qsub_Ag1 -l h_rt='150:00:00' -o ~/logs/yourTTS/20220417_pro_eng_singleGPU_batch_52_202204192301.log run_at_abci.sh
-# 例: qsub_Afull -l h_rt='70:00:00' -o ~/logs/yourTTS/20220417_pro_eng_multiGPU_batch_52_202204200128.log run_at_abci.sh
+# 例: qsub_Afull -l h_rt='70:00:00' -o ~/logs/yourTTS/20220425_pro_eng_2_202204270040.log run_at_abci.sh
 # 例: qrsh -g $ABCI_GROUP -l rt_AG.small=1 -l h_rt=10:00:00
 # 例: qrsh -g $ABCI_GROUP -l rt_AF=1 -l h_rt=10:00:00
 
@@ -17,7 +17,7 @@ export PYTHONPATH="/groups/4/gcd50804/yuto_nishimura/workspace/python/yellston/T
 
 # # multi-GPU
 python3 TTS/bin/distribute.py --script TTS/bin/train_tts.py \
-    --config_path exps/20220417_pro_eng/config.json \
-    --restore_path exps/tts_models--multilingual--multi-dataset--your_tts/model_file.pth.tar
+    --config_path exps/20220425_pro_eng_2/config.json \
+    --restore_path exps/20220425_pro_eng_2/pretrained_model_from_opensource_del_text_emb.pth
 
 deactivate

@@ -3,6 +3,7 @@ datasets/
 !TTS/tts/datasets/
 *.npy
 *.pth.tar
+*.pth
 *log.txt
 
 events.*
