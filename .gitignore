@@ -5,6 +5,7 @@ datasets/
 *.pth.tar
 *.pth
 *log.txt
+wandb/
 
 events.*
 

@@ -2,6 +2,7 @@ import collections
 import os
 import random
 from multiprocessing import Pool
+from traceback import print_tb
 from typing import Dict, List
 
 import numpy as np
@@ -343,8 +344,11 @@ class TTSDataset(Dataset):
 
     def sort_items(self):
         r"""Sort instances based on text length in ascending order"""
-        lengths = np.array([len(ins[0]) for ins in self.items])
-
+        # 本当にmelを計算する必要は一切ない．計算後の長さはhop_lengthで割るだけ
+        lengths = np.array([
+            np.asarray(self.load_wav(ins[2]), dtype=np.float32).shape[0]//self.ap.hop_length
+            for ins in self.items]
+        )
         idxs = np.argsort(lengths)
         new_items = []
         ignored = []
