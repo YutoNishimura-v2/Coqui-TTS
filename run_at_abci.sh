@@ -1,4 +1,4 @@
-# 例: qsub_Ag1 -l h_rt='150:00:00' -o ~/logs/yourTTS/20220417_pro_eng_singleGPU_batch_52_202204192301.log run_at_abci.sh
+# 例: qsub_Ag1 -l h_rt='10:00:00' -o ~/logs/yourTTS/20220429_pro_eng_4_202205011120.log run_at_abci.sh
 # 例: qsub_Afull -l h_rt='70:00:00' -o ~/logs/yourTTS/20220429_pro_eng_3_202204300129.log run_at_abci.sh
 # 例: qrsh -g $ABCI_GROUP -l rt_AG.small=1 -l h_rt=10:00:00
 # 例: qrsh -g $ABCI_GROUP -l rt_AF=1 -l h_rt=10:00:00
@@ -13,14 +13,14 @@ export PYTHONPATH="/groups/4/gcd50804/yuto_nishimura/workspace/python/yellston/T
 # wandb
 export WANDB_API_KEY=372c44d0dd36d935650a41082a67b4ae2cb80015
 
-# # single-GPU
-# python3 TTS/bin/train_tts.py \
-#     --config_path exps/20220429_pro_eng_3/config.json \
-#     --restore_path exps/tts_models--multilingual--multi-dataset--your_tts/model_file.pth.tar
+# single-GPU
+python3 -m ipdb TTS/bin/train_tts.py \
+    --config_path exps/20220429_pro_eng_4/config.json \
+    --restore_path exps/tts_models--multilingual--multi-dataset--your_tts/model_file.pth.tar
 
-# multi-GPU
-python3 TTS/bin/distribute.py --script TTS/bin/train_tts.py \
-    --config_path exps/20220429_pro_eng_3/config.json \
-    --restore_path exps/20220425_pro_eng_2/pretrained_model_from_opensource_del_text_emb.pth
+# # multi-GPU
+# python3 TTS/bin/distribute.py --script TTS/bin/train_tts.py \
+#     --config_path exps/20220429_pro_eng_3/config.json \
+#     --restore_path exps/20220425_pro_eng_2/pretrained_model_from_opensource_del_text_emb.pth
 
 deactivate
