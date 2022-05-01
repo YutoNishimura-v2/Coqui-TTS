@@ -1,7 +1,9 @@
 import sys
-
-from TTS.trainer import Trainer, init_training
-
+print("a")
+from TTS.trainer import Trainer
+print("b")
+from TTS.trainer import init_training
+print("c")
 
 def main():
     print("fdajfls")

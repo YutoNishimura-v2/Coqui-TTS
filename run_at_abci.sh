@@ -1,4 +1,4 @@
-# 例: qsub_Ag1 -l h_rt='10:00:00' -o ~/logs/yourTTS/20220429_pro_eng_4_202205011120.log run_at_abci.sh
+# 例: qsub_Ag1 -l h_rt='10:00:00' -o ~/logs/yourTTS/20220429_pro_eng_4_202205012016.log run_at_abci.sh
 # 例: qsub_Afull -l h_rt='70:00:00' -o ~/logs/yourTTS/20220429_pro_eng_3_202204300129.log run_at_abci.sh
 # 例: qrsh -g $ABCI_GROUP -l rt_AG.small=1 -l h_rt=10:00:00
 # 例: qrsh -g $ABCI_GROUP -l rt_AF=1 -l h_rt=10:00:00
