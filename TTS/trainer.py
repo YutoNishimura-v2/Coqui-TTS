@@ -1006,7 +1006,7 @@ class Trainer:
             def __init__(self, print_to_terminal=True, rank=0):
                 self.print_to_terminal = print_to_terminal
                 # self.terminal = sys.stdout
-                self.terminal = sys.__stdout__
+                self.terminal = sys.__stderr__
                 self.log_file = log_file
                 # try:
                 #     self.log = open(log_file, "a+")
@@ -1200,7 +1200,6 @@ def process_args(args, config=None):
     TODO:
         - Interactive config definition.
     """
-    print("a")
     if isinstance(args, tuple):
         args, coqpit_overrides = args
     if args.continue_path:
@@ -1210,7 +1209,6 @@ def process_args(args, config=None):
         args.restore_path, best_model = get_last_checkpoint(args.continue_path)
         if not args.best_path:
             args.best_path = best_model
-    print("b")
 
     # init config if not already defined
     if config is None:
@@ -1225,8 +1223,6 @@ def process_args(args, config=None):
             config_base.parse_known_args(coqpit_overrides)
             config = register_config(config_base.model)()
     # override values from command-line args
-    print("c")
-    
     config.parse_known_args(coqpit_overrides, relaxed_parser=True)
     experiment_path = args.continue_path
     if not experiment_path:
@@ -1235,7 +1231,6 @@ def process_args(args, config=None):
     config.output_log_path = experiment_path
     # setup rank 0 process in distributed training
     dashboard_logger = None
-    print("hiiiiiiiiiiiiiiiiiiiiiiiiii")
     if args.rank == 0:
         new_fields = {}
         if args.restore_path:

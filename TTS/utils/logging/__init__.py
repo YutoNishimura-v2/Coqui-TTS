@@ -6,7 +6,6 @@ from TTS.utils.logging.wandb_logger import WandbLogger
 
 
 def init_dashboard_logger(config):
-    print("hiiiii")
     if config.dashboard_logger == "tensorboard":
         dashboard_logger = TensorboardLogger(config.output_log_path, model_name=config.model)
     elif config.dashboard_logger == "wandb":
@@ -20,8 +19,6 @@ def init_dashboard_logger(config):
             config=config,
             entity=config.wandb_entity,
         )
-    print("hiiiiiiiii")
-    
 
     dashboard_logger.add_text("model-config", f"<pre>{config.to_json()}</pre>", 0)
 

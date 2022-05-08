@@ -3,6 +3,7 @@
 
 import argparse
 import os
+import sys
 
 import numpy as np
 import torch
@@ -162,7 +163,7 @@ def extract_spectrograms(
 ):
     model.eval()
     export_metadata = []
-    for _, data in tqdm(enumerate(data_loader), total=len(data_loader)):
+    for _, data in tqdm(enumerate(data_loader), total=len(data_loader), file=sys.stdout):
 
         # format data
         (

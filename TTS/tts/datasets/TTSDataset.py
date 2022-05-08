@@ -4,6 +4,7 @@ import random
 from multiprocessing import Pool
 from traceback import print_tb
 from typing import Dict, List
+import sys
 
 import numpy as np
 import torch
@@ -300,7 +301,7 @@ class TTSDataset(Dataset):
         if not self.use_phonemes:
             if self.verbose:
                 print(" | > Computing input sequences ...")
-            for idx, item in enumerate(tqdm.tqdm(self.items)):
+            for idx, item in enumerate(tqdm.tqdm(self.items, file=sys.stdout)):
                 text, *_ = item
                 sequence = np.asarray(
                     text_to_sequence(
@@ -328,7 +329,7 @@ class TTSDataset(Dataset):
             if self.verbose:
                 print(" | > Computing phonemes ...")
             if num_workers == 0:
-                for idx, item in enumerate(tqdm.tqdm(self.items)):
+                for idx, item in enumerate(tqdm.tqdm(self.items, file=sys.stdout)):
                     phonemes = self._phoneme_worker([item, func_args])
                     self.items[idx][0] = phonemes
             else:
@@ -337,6 +338,7 @@ class TTSDataset(Dataset):
                         tqdm.tqdm(
                             p.imap(TTSDataset._phoneme_worker, [[item, func_args] for item in self.items]),
                             total=len(self.items),
+                            file=sys.stdout
                         )
                     )
                     for idx, p in enumerate(phonemes):

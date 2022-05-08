@@ -4,6 +4,7 @@
 import argparse
 import glob
 import os
+import sys
 
 import numpy as np
 from tqdm import tqdm
@@ -49,7 +50,7 @@ def main():
     linear_sum = 0
     linear_square_sum = 0
     N = 0
-    for item in tqdm(dataset_items):
+    for item in tqdm(dataset_items, file=sys.stdout):
         # compute features
         wav = ap.load_wav(item if isinstance(item, str) else item[1])
         linear = ap.spectrogram(wav)

@@ -90,7 +90,10 @@
             "name": "coefont_cloud_all",
             "path": "../dataset/Coefont-Cloud-16khz/",
             "meta_file_train": null,
-            "ununsed_speakers": ["morikawa", "fujisaki"],
+            "ununsed_speakers": [
+                "morikawa",
+                "fujisaki"
+            ],
             "language": "ja-jp",
             "meta_file_val": null,
             "meta_file_attn_mask": ""
@@ -118,7 +121,7 @@
     "lr_scheduler_params": null,
     "test_sentences": [
         [
-            "マケルワケニワイカネーヨ。",
+            "\u30de\u30b1\u30eb\u30ef\u30b1\u30cb\u30ef\u30a4\u30ab\u30cd\u30fc\u30e8\u3002",
             "1222111122221",
             "morikawa",
             null,
@@ -152,7 +155,7 @@
         "kernel_size_flow": 5,
         "dilation_rate_flow": 1,
         "num_layers_flow": 4,
-        "resblock_type_decoder": "2",
+        "resblock_type_decoder": 2,
         "resblock_kernel_sizes_decoder": [
             3,
             7,
@@ -191,7 +194,7 @@
         "use_sdp": true,
         "noise_scale": 1.0,
         "inference_noise_scale": 0.3,
-        "length_scale": 1.5,
+        "length_scale": 1,
         "noise_scale_dp": 0.6,
         "inference_noise_scale_dp": 0.3,
         "max_inference_len": null,

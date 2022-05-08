@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import xml.etree.ElementTree as ET
 from glob import glob
 from pathlib import Path
@@ -368,6 +369,7 @@ def mls(root_path, meta_files=None, ununsed_speakers=None):
 #             wav_files,
 #             desc=f"Building VoxCeleb {voxcel_idx} Meta file ... this needs to be done only once.",
 #             total=expected_count,
+#             file=sys.stdout
 #         ):
 #             speaker_id = str(Path(path).parent.parent.stem)
 #             assert speaker_id.startswith("id")

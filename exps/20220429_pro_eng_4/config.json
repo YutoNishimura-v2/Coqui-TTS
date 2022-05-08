@@ -10,7 +10,7 @@
     "run_eval": true,
     "test_delay_epochs": -1,
     "print_eval": true,
-    "dashboard_logger": "tensorboard",
+    "dashboard_logger": "wandb",
     "print_step": 25,
     "plot_step": 100,
     "model_param_stats": false,

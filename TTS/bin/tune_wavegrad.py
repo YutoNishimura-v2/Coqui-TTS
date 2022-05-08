@@ -1,6 +1,7 @@
 """Search a good noise schedule for WaveGrad for a given number of inferece iterations"""
 import argparse
 from itertools import product as cartesian_product
+import sys
 
 import numpy as np
 import torch
@@ -75,7 +76,7 @@ exponents = 10 ** np.linspace(-6, -1, num=args.num_iter)
 best_error = float("inf")
 best_schedule = None
 total_search_iter = len(base_values) ** args.num_iter
-for base in tqdm(cartesian_product(base_values, repeat=args.num_iter), total=total_search_iter):
+for base in tqdm(cartesian_product(base_values, repeat=args.num_iter), total=total_search_iter, file=sys.stdout):
     beta = exponents * base
     model.compute_noise_level(beta)
     for data in loader:

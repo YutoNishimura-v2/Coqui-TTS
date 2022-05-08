@@ -80,4 +80,23 @@
     - でも，何かtensorboardとかに絡む読み込みはなかった気がする...
 
 - import でも print作戦してみる
-  - 
+  - まさかのNG！！！意味不明！！
+  - そこで，configはtensorboardの前において，exitしてみたら，そこまでのprintはされた！！
+  - これは，仮説として，「途中から出力が切り替わる説」が浮上する．つまり，途中まではちゃんと出力されているはず．
+  - tensorboard init前にexitしてみる
+    - 正しくprintされた．つまり，突然tensorboardが出力場所を変えるという感じ？
+    - ただ，tqdmはやはり出力されるので，常にerr出力すればいいのか??
+    - できた．一番最初に `sys.stdout = sys.__stderr__` をしたらできた．
+    - では，これをterminal二も入れてみる
+      - `self.terminal = sys.__stderr__`
+    - できたあああああ！！！！
+  - 仮説成功！！！stdoutを変なのにする！！！
+  - wandbでテストしたら，tqdm周りで変なことが起こってしまった．
+    - 仕方ないので，tqdmを逆に標準出力にしてしまう，
+      - tqdmの引数に， file=sys.stdout とする
+    - めちゃくちゃうまくいって成功！！完了!!
+
+- 結論:
+  - 謎にstdoutを曲げられてしまう
+  - 不思議なことは起きない．ちゃんと事件はtensorboardの前後で怒る
+  - tqdmに注目したのがよかった

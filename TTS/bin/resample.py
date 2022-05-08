@@ -1,6 +1,7 @@
 import argparse
 import glob
 import os
+import sys
 from argparse import RawTextHelpFormatter
 from distutils.dir_util import copy_tree
 from multiprocessing import Pool
@@ -71,7 +72,7 @@ if __name__ == "__main__":
     print(f"Found {len(audio_files)} files...")
     audio_files = list(zip(audio_files, len(audio_files) * [args.output_sr]))
     with Pool(processes=args.n_jobs) as p:
-        with tqdm(total=len(audio_files)) as pbar:
+        with tqdm(total=len(audio_files), file=sys.stdout) as pbar:
             for i, _ in enumerate(p.imap_unordered(resample_file, audio_files)):
                 pbar.update()
 

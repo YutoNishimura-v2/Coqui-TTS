@@ -1,6 +1,7 @@
 import argparse
 import os
 from argparse import RawTextHelpFormatter
+import sys
 
 from tqdm import tqdm
 
@@ -45,7 +46,7 @@ speaker_manager = SpeakerManager(
 
 # compute speaker embeddings
 speaker_mapping = {}
-for idx, wav_file in enumerate(tqdm(wav_files)):
+for idx, wav_file in enumerate(tqdm(wav_files, file=sys.stdout)):
     if isinstance(wav_file, list):
         speaker_name = wav_file[2]
         wav_file = wav_file[1]

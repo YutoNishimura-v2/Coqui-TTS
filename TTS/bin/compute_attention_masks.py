@@ -1,6 +1,7 @@
 import argparse
 import importlib
 import os
+import sys
 from argparse import RawTextHelpFormatter
 
 import numpy as np
@@ -110,7 +111,7 @@ Example run:
     # compute attentions
     file_paths = []
     with torch.no_grad():
-        for data in tqdm(loader):
+        for data in tqdm(loader, file=sys.stdout):
             # setup input data
             text_input = data[0]
             text_lengths = data[1]
