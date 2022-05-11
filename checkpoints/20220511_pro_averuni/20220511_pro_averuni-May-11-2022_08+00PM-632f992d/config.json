@@ -1,6 +1,6 @@
 {
     "model": "vits",
-    "run_name": "20220429_pro_eng_3",
+    "run_name": "20220511_pro_averuni",
     "run_description": "",
     "epochs": 1000,
     "batch_size": 52,
@@ -25,7 +25,7 @@
     "num_eval_loader_workers": 4,
     "use_noise_augment": false,
     "use_language_weighted_sampler": true,
-    "output_path": "checkpoints/20220429_pro_eng_3/",
+    "output_path": "checkpoints/20220511_pro_averuni/",
     "distributed_backend": "nccl",
     "distributed_url": "tcp://localhost:54321",
     "audio": {
@@ -67,7 +67,7 @@
     "text_cleaner": "multilingual_cleaners",
     "enable_eos_bos_chars": false,
     "test_sentences_file": "",
-    "phoneme_cache_path": "exps/20220425_pro_eng_2/phoneme_cache/",
+    "phoneme_cache_path": "exps/20220511_pro_averuni/phoneme_cache/",
     "characters": {
         "pad": "_",
         "eos": "&",
@@ -99,8 +99,47 @@
             "meta_file_attn_mask": ""
         },
         {
+            "name": "coefont_cloud_all",
+            "path": "../dataset/Coefont-Cloud-Pro-16khz/",
+            "meta_file_train": null,
+            "ununsed_speakers": [
+                "2f26f1b2-4758-4ead-9c7b-42a438238ef7",
+                "4dc53189-840f-42f7-8827-9898ce468642",
+                "9eaa0a8f-16ca-4fa7-838f-7cfcd6804543",
+                "272af3ed-71c9-4e83-b66f-5ff22c08fae6",
+                "684e3b78-fd6b-4fd1-b943-e82c4068c47a",
+                "0755a9ad-d7dc-4dd2-99d0-0590b90f2c60",
+                "2726f8ee-141c-4df0-8867-73e386359aee",
+                "b99f765c-4e63-4fb7-b53f-1deb5447555e",
+                "c0b5de35-7d82-4045-93e6-f7e215e309b4",
+                "c3c5626c-8714-4615-a5bc-8f4ab5ef4ebe",
+                "c5375a07-e6b9-437b-a4ee-cb6439a0d95c",
+                "c1248860-738f-4c37-bb2e-6daa1792997a",
+                "d6740fe4-cf25-4fa4-8b06-2735edc86e97",
+                "f5cc38db-6096-438a-8877-c7651a1894ec"
+            ],
+            "language": "ja-jp",
+            "meta_file_val": null,
+            "meta_file_attn_mask": ""
+        },
+        {
+            "name": "coefont_studio",
+            "path": "../dataset/Coefont-Studio-16khz/",
+            "meta_file_train": null,
+            "ununsed_speakers": [
+                "averuni_ikari",
+                "averuni_kanashimi",
+                "averuni_normal",
+                "averuni_tanoshimi",
+                "averuni_yorokobi"
+            ],
+            "language": "ja-jp",
+            "meta_file_val": null,
+            "meta_file_attn_mask": ""
+        },
+        {
             "name": "libri_tts",
-            "path": "../dataset/LibriTTS-16khz/train-clean-100",
+            "path": "../dataset/LibriTTS-16khz",
             "meta_file_train": null,
             "ununsed_speakers": null,
             "language": "en",
@@ -133,13 +172,97 @@
             "morikawa",
             null,
             "en"
+        ],
+        [
+            "\u30de\u30b1\u30eb\u30ef\u30b1\u30cb\u30ef\u30a4\u30ab\u30cd\u30fc\u30e8\u3002",
+            "1222111122221",
+            "averuni_ikari",
+            null,
+            "ja-jp"
+        ],
+        [
+            "The clock struck twelve, and it still rained.",
+            null,
+            "averuni_ikari",
+            null,
+            "en"
+        ],
+        [
+            "\u30de\u30b1\u30eb\u30ef\u30b1\u30cb\u30ef\u30a4\u30ab\u30cd\u30fc\u30e8\u3002",
+            "1222111122221",
+            "averuni_kanashimi",
+            null,
+            "ja-jp"
+        ],
+        [
+            "The clock struck twelve, and it still rained.",
+            null,
+            "averuni_kanashimi",
+            null,
+            "en"
+        ],
+        [
+            "\u30de\u30b1\u30eb\u30ef\u30b1\u30cb\u30ef\u30a4\u30ab\u30cd\u30fc\u30e8\u3002",
+            "1222111122221",
+            "averuni_normal",
+            null,
+            "ja-jp"
+        ],
+        [
+            "The clock struck twelve, and it still rained.",
+            null,
+            "averuni_normal",
+            null,
+            "en"
+        ],
+        [
+            "\u30de\u30b1\u30eb\u30ef\u30b1\u30cb\u30ef\u30a4\u30ab\u30cd\u30fc\u30e8\u3002",
+            "1222111122221",
+            "averuni_tanoshimi",
+            null,
+            "ja-jp"
+        ],
+        [
+            "The clock struck twelve, and it still rained.",
+            null,
+            "averuni_tanoshimi",
+            null,
+            "en"
+        ],
+        [
+            "\u30de\u30b1\u30eb\u30ef\u30b1\u30cb\u30ef\u30a4\u30ab\u30cd\u30fc\u30e8\u3002",
+            "1222111122221",
+            "averuni_yorokobi",
+            null,
+            "ja-jp"
+        ],
+        [
+            "The clock struck twelve, and it still rained.",
+            null,
+            "averuni_yorokobi",
+            null,
+            "en"
+        ],
+        [
+            "\u30de\u30b1\u30eb\u30ef\u30b1\u30cb\u30ef\u30a4\u30ab\u30cd\u30fc\u30e8\u3002",
+            "1222111122221",
+            "2f26f1b2-4758-4ead-9c7b-42a438238ef7",
+            null,
+            "ja-jp"
+        ],
+        [
+            "The clock struck twelve, and it still rained.",
+            null,
+            "2f26f1b2-4758-4ead-9c7b-42a438238ef7",
+            null,
+            "en"
         ]
     ],
     "use_speaker_embedding": true,
     "use_d_vector_file": false,
     "d_vector_dim": 512,
     "model_args": {
-        "num_chars": 64,
+        "num_chars": 165,
         "out_channels": 513,
         "spec_segment_size": 62,
         "hidden_channels": 192,
@@ -201,7 +324,7 @@
         "init_discriminator": true,
         "use_spectral_norm_disriminator": false,
         "use_speaker_embedding": true,
-        "num_speakers": 249,
+        "num_speakers": 1244,
         "speakers_file": null,
         "d_vector_file": null,
         "speaker_embedding_channels": 512,
@@ -212,7 +335,7 @@
         "embedded_language_dim": 4,
         "num_languages": 2,
         "use_accent_embedding": true,
-        "num_accents": 8,
+        "num_accents": 3,
         "embedded_accent_dim": 128,
         "use_speaker_encoder_as_loss": false,
         "speaker_encoder_config_path": null,
