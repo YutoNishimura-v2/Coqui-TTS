@@ -345,19 +345,33 @@ class TTSDataset(Dataset):
                     for idx, p in enumerate(phonemes):
                         self.items[idx][0] = p
 
-    def sort_items(self):
+    def sort_items(self, num_workers=0):
         r"""Sort instances based on text length in ascending order"""
         # 本当にmelを計算する必要は一切ない．計算後の長さはhop_lengthで割るだけ
         lengths = []
         new_items = []
         ignored_cnt = 0
-        for ins in self.items:
-            length = np.asarray(self.load_wav(ins[2])).shape[0]//self.ap.hop_length
-            if (length < self.min_seq_len) or (length > self.max_seq_len):
-                ignored_cnt += 1
-            else:
-                new_items.append(ins)
-                lengths.append(length)
+        
+        def get_length(item, hop_length):
+            return (
+                np.asarray(self.load_wav(item[2])).shape[0]//hop_length,
+                item
+            )
+
+        with Pool(num_workers) as p:
+            _lengths = list(
+                tqdm.tqdm(
+                    p.imap(get_length, [[item, self.ap.hop_length] for item in self.items]),
+                    total=len(self.items),
+                    file=sys.stdout
+                )
+            )
+            for l, item in _lengths:
+                if (l < self.min_seq_len) or (l > self.max_seq_len):
+                    ignored_cnt += 1
+                else:
+                    new_items.append(item)
+                    lengths.append(l)
 
         idxs = np.argsort(lengths)
         new_items = [new_items[idx] for idx in idxs]
@@ -377,7 +391,7 @@ class TTSDataset(Dataset):
             print(" | > Avg length sequence: {}".format(np.mean(lengths)))
             print(
                 " | > Num. instances discarded by max-min (max={}, min={}) seq limits: {}".format(
-                    self.max_seq_len, self.min_seq_len, len(ignored)
+                    self.max_seq_len, self.min_seq_len, ignored_cnt
                 )
             )
             print(" | > Batch group size: {}.".format(self.batch_group_size))

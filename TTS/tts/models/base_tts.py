@@ -304,7 +304,7 @@ class BaseTTS(BaseModel):
                 dist.barrier()
 
             # sort input sequences from short to long
-            dataset.sort_items()
+            dataset.sort_items(config.num_loader_workers)
 
             # sampler for DDP
             sampler = DistributedSampler(dataset) if num_gpus > 1 else None
