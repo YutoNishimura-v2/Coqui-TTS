@@ -2,6 +2,7 @@ import collections
 import os
 import random
 from multiprocessing import Pool
+from concurrent.futures import ProcessPoolExecutor
 from traceback import print_tb
 from typing import Dict, List
 import sys
@@ -347,20 +348,19 @@ class TTSDataset(Dataset):
     def sort_items(self):
         r"""Sort instances based on text length in ascending order"""
         # 本当にmelを計算する必要は一切ない．計算後の長さはhop_lengthで割るだけ
-        lengths = np.array([
-            np.asarray(self.load_wav(ins[2]), dtype=np.float32).shape[0]//self.ap.hop_length
-            for ins in self.items]
-        )
-        idxs = np.argsort(lengths)
+        lengths = []
         new_items = []
-        ignored = []
-        for i, idx in enumerate(idxs):
-            length = lengths[idx]
-            _min_seq_len = self.min_seq_len
-            if (length < _min_seq_len) or (length > self.max_seq_len):
-                ignored.append(idx)
+        ignored_cnt = 0
+        for ins in self.items:
+            length = np.asarray(self.load_wav(ins[2])).shape[0]//self.ap.hop_length
+            if (length < self.min_seq_len) or (length > self.max_seq_len):
+                ignored_cnt += 1
             else:
-                new_items.append(self.items[idx])
+                new_items.append(ins)
+                lengths.append(length)
+
+        idxs = np.argsort(lengths)
+        new_items = [new_items[idx] for idx in idxs]
         # shuffle batch groups
         if self.batch_group_size > 0:
             for i in range(len(new_items) // self.batch_group_size):
