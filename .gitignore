@@ -6,6 +6,7 @@ datasets/
 *.pth
 *log.txt
 wandb/
+*.wav
 
 events.*
 

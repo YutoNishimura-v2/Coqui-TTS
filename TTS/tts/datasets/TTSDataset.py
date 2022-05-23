@@ -345,6 +345,16 @@ class TTSDataset(Dataset):
                     for idx, p in enumerate(phonemes):
                         self.items[idx][0] = p
 
+    @staticmethod
+    def _get_mel_length(args):
+        item = args[0]
+        func_args = args[1]
+        wav_loader, hop_length = func_args
+        return (
+            np.asarray(wav_loader(item[2])).shape[0]//hop_length,
+            item
+        )
+
     def sort_items(self, num_workers=0):
         r"""Sort instances based on text length in ascending order"""
         # 本当にmelを計算する必要は一切ない．計算後の長さはhop_lengthで割るだけ
@@ -352,16 +362,15 @@ class TTSDataset(Dataset):
         new_items = []
         ignored_cnt = 0
         
-        def get_length(item, hop_length):
-            return (
-                np.asarray(self.load_wav(item[2])).shape[0]//hop_length,
-                item
-            )
+        func_args = [
+            self.load_wav,
+            self.ap.hop_length
+        ]
 
         with Pool(num_workers) as p:
             _lengths = list(
                 tqdm.tqdm(
-                    p.imap(get_length, [[item, self.ap.hop_length] for item in self.items]),
+                    p.imap(TTSDataset._get_mel_length, [[item, func_args] for item in self.items]),
                     total=len(self.items),
                     file=sys.stdout
                 )
