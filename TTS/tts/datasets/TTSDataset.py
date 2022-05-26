@@ -349,9 +349,20 @@ class TTSDataset(Dataset):
     def _get_mel_length(args):
         item = args[0]
         func_args = args[1]
-        wav_loader, hop_length = func_args
+        wav_loader, hop_length, phoneme_cache_path = func_args
+
+        _, _, wav_file, spk = item
+
+        file_name = os.path.splitext(os.path.basename(wav_file))[0]
+        file_name_ext = "_mel_length.npy"
+        cache_path = os.path.join(phoneme_cache_path, spk + "_" + file_name + file_name_ext)
+        try:
+            length = np.load(cache_path)
+        except FileNotFoundError:
+            length = np.array([np.asarray(wav_loader(wav_file)).shape[0]//hop_length])
+            np.save(cache_path, length)
         return (
-            np.asarray(wav_loader(item[2])).shape[0]//hop_length,
+            length[0],
             item
         )
 
@@ -364,7 +375,8 @@ class TTSDataset(Dataset):
         
         func_args = [
             self.load_wav,
-            self.ap.hop_length
+            self.ap.hop_length,
+            self.phoneme_cache_path,
         ]
 
         with Pool(num_workers) as p:
