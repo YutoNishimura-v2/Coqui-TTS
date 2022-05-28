@@ -358,7 +358,7 @@ class TTSDataset(Dataset):
         file_name_ext = "_mel_length.npy"
         cache_path = os.path.join(phoneme_cache_path, spk + "_" + file_name + file_name_ext)
         try:
-            length = np.load(cache_path)
+            length = np.load(cache_path, allow_pickle=True)
         except FileNotFoundError:
             # 本来、ここで用意されているwav_loaderではtrim silence などを行っている。
             # なので、単にreadするだけだと長さは正確に一致しないことに注意。

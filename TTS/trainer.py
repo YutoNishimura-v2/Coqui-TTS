@@ -1017,8 +1017,18 @@ class Trainer:
             def write(self, message):
                 if self.print_to_terminal:
                     self.terminal.write(message)
-                with open(self.log_file, 'a') as f:
-                    f.write(message)
+                cnt = 0
+                while(True):
+                    try:
+                        with open(self.log_file, 'a') as f:
+                            f.write(message)
+                        break
+                    except FileNotFoundError:
+                        cnt += 1
+                        time.sleep(0.1)
+                        if cnt == 50:
+                            # just pass
+                            break
                 # self.log.write(message)
 
             def flush(self):
