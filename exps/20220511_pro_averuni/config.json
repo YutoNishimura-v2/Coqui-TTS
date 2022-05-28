@@ -80,7 +80,7 @@
     },
     "batch_group_size": 0,
     "loss_masking": null,
-    "min_seq_len": 70,
+    "min_seq_len": 62,
     "max_seq_len": 500,
     "compute_f0": false,
     "compute_linear_spec": true,

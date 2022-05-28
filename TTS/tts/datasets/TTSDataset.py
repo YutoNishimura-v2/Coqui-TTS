@@ -7,6 +7,8 @@ from traceback import print_tb
 from typing import Dict, List
 import sys
 
+import librosa
+import soundfile as sf
 import numpy as np
 import torch
 import tqdm
@@ -138,6 +140,33 @@ class TTSDataset(Dataset):
             if use_phonemes:
                 print("   | > phoneme language: {}".format(phoneme_language))
             print(" | > Number of instances : {}".format(len(self.items)))
+
+    @staticmethod
+    def load_wav_faster(
+        filename,
+        resample, sample_rate, do_trim_silence, do_sound_norm,
+        trim_db, win_length, hop_length,
+        sr=None
+    ):
+        # apを介さないやり方
+        # staticmethod, つまり self を利用しないので，おそらく multiprocess を行うときに高速になる
+        if resample:
+            x, sr = librosa.load(filename, sr=sample_rate)
+        elif sr is None:
+            x, sr = sf.read(filename)
+            assert sample_rate == sr, "%s vs %s" % (sample_rate, sr)
+        else:
+            x, sr = librosa.load(filename, sr=sr)
+        if do_trim_silence:
+            try:
+                margin = int(sample_rate * 0.01)
+                x = x[margin:-margin]
+                x = librosa.effects.trim(x, top_db=trim_db, frame_length=win_length, hop_length=hop_length)[0]
+            except ValueError:
+                print(f" [!] File cannot be trimmed for silence - {filename}")
+        if do_sound_norm:
+            x = AudioProcessor.sound_norm(x)
+        return x
 
     def load_wav(self, filename):
         audio = self.ap.load_wav(filename)
@@ -350,7 +379,10 @@ class TTSDataset(Dataset):
     def _get_mel_length(args):
         item = args[0]
         func_args = args[1]
-        hop_length, phoneme_cache_path = func_args
+        (
+            resample, sample_rate, do_trim_silence, do_sound_norm,
+            trim_db, win_length, hop_length, phoneme_cache_path
+        ) = func_args
 
         _, _, wav_file, spk, _ = item
 
@@ -363,8 +395,11 @@ class TTSDataset(Dataset):
             # 本来、ここで用意されているwav_loaderではtrim silence などを行っている。
             # なので、単にreadするだけだと長さは正確に一致しないことに注意。
             # 詳細; TTS/utils/audio.py
-            _, wav = wavfile.read(wav_file)
-            length = np.array([wav.shape[0]//hop_length])
+            wav = TTSDataset.load_wav_faster(
+                wav_file, resample, sample_rate, do_trim_silence, do_sound_norm,
+                trim_db, win_length, hop_length
+            )
+            length = np.array([np.asarray(wav, dtype=np.float32).shape[0]//hop_length])
             np.save(cache_path, length)
         return (
             length[0],
@@ -377,17 +412,23 @@ class TTSDataset(Dataset):
         lengths = []
         new_items = []
         ignored_cnt = 0
-        
+
         func_args = [
+            self.ap.resample,
+            self.ap.sample_rate,
+            self.ap.do_trim_silence,
+            self.ap.do_sound_norm,
+            self.ap.trim_db,
+            self.ap.win_length,
             self.ap.hop_length,
             self.phoneme_cache_path,
         ]
 
         if num_workers == 0:
             for idx, item in enumerate(tqdm.tqdm(self.items, file=sys.stdout)):
-                l, item = self._get_mel_length([item, func_args])
+                l, item = TTSDataset._get_mel_length([item, func_args])
                 if (l < self.min_seq_len) or (l > self.max_seq_len):
-                        ignored_cnt += 1
+                    ignored_cnt += 1
                 else:
                     new_items.append(item)
                     lengths.append(l)
@@ -395,7 +436,7 @@ class TTSDataset(Dataset):
             with Pool(num_workers) as p:
                 _lengths = list(
                     tqdm.tqdm(
-                        p.imap(self._get_mel_length, [[item, func_args] for item in self.items]),
+                        p.imap(TTSDataset._get_mel_length, [[item, func_args] for item in self.items]),
                         total=len(self.items),
                         file=sys.stdout
                     )
