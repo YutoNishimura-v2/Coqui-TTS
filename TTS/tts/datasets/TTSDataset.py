@@ -11,6 +11,7 @@ import numpy as np
 import torch
 import tqdm
 from torch.utils.data import Dataset
+from scipy.io import wavfile
 
 from TTS.tts.utils.data import prepare_data, prepare_stop_target, prepare_tensor
 from TTS.tts.utils.text import pad_with_eos_bos, phoneme_to_sequence, text_to_sequence
@@ -349,9 +350,9 @@ class TTSDataset(Dataset):
     def _get_mel_length(args):
         item = args[0]
         func_args = args[1]
-        wav_loader, hop_length, phoneme_cache_path = func_args
+        hop_length, phoneme_cache_path = func_args
 
-        _, _, wav_file, spk = item
+        _, _, wav_file, spk, _ = item
 
         file_name = os.path.splitext(os.path.basename(wav_file))[0]
         file_name_ext = "_mel_length.npy"
@@ -359,7 +360,11 @@ class TTSDataset(Dataset):
         try:
             length = np.load(cache_path)
         except FileNotFoundError:
-            length = np.array([np.asarray(wav_loader(wav_file)).shape[0]//hop_length])
+            # 本来、ここで用意されているwav_loaderではtrim silence などを行っている。
+            # なので、単にreadするだけだと長さは正確に一致しないことに注意。
+            # 詳細; TTS/utils/audio.py
+            _, wav = wavfile.read(wav_file)
+            length = np.array([wav.shape[0]//hop_length])
             np.save(cache_path, length)
         return (
             length[0],
@@ -374,25 +379,33 @@ class TTSDataset(Dataset):
         ignored_cnt = 0
         
         func_args = [
-            self.load_wav,
             self.ap.hop_length,
             self.phoneme_cache_path,
         ]
 
-        with Pool(num_workers) as p:
-            _lengths = list(
-                tqdm.tqdm(
-                    p.imap(TTSDataset._get_mel_length, [[item, func_args] for item in self.items]),
-                    total=len(self.items),
-                    file=sys.stdout
-                )
-            )
-            for l, item in _lengths:
+        if num_workers == 0:
+            for idx, item in enumerate(tqdm.tqdm(self.items, file=sys.stdout)):
+                l, item = self._get_mel_length([item, func_args])
                 if (l < self.min_seq_len) or (l > self.max_seq_len):
-                    ignored_cnt += 1
+                        ignored_cnt += 1
                 else:
                     new_items.append(item)
                     lengths.append(l)
+        else:
+            with Pool(num_workers) as p:
+                _lengths = list(
+                    tqdm.tqdm(
+                        p.imap(self._get_mel_length, [[item, func_args] for item in self.items]),
+                        total=len(self.items),
+                        file=sys.stdout
+                    )
+                )
+                for l, item in _lengths:
+                    if (l < self.min_seq_len) or (l > self.max_seq_len):
+                        ignored_cnt += 1
+                    else:
+                        new_items.append(item)
+                        lengths.append(l)
 
         idxs = np.argsort(lengths)
         new_items = [new_items[idx] for idx in idxs]
