@@ -24,4 +24,11 @@
     - jobID: 9880685
 - 20220511_pro_averuni
     - 森川さん+アベルーニ+proたち+LibriTTS
-    - jobID: 9976398
+    - jobID: 9981536
+    - jobID: 9999340
+- 20220606_pro_averuni_light
+    - 森川さん+アベルーニ+proたち+LibriTTS/100のみ
+    - jobID: 10004969
+- 20220609_pro_studio_light
+    - 森川さん+CoeFont studio+pro全て+LibriTTS/100のみ
+    - jobID: 10023177

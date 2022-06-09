@@ -483,15 +483,15 @@ def coefont_cloud_all(root_path, meta_files=None, ununsed_speakers=None):
             json_data = json.load(f)
             all_text.update(json_data)
     
-    _ununsed_speakers = []
     if ununsed_speakers is not None:
+        _ununsed_speakers = []
         for _spk in ununsed_speakers:
             if Path(_spk).exists() is True:
                 with open(_spk, 'r') as f:
                     _ununsed_speakers += [spk.strip() for spk in f.readlines()]
             else:
                 _ununsed_speakers += [_spk]
-    ununsed_speakers = _ununsed_speakers
+        ununsed_speakers = _ununsed_speakers
 
     for wav_path in wav_files:
         speaker_name = wav_path.parent.stem

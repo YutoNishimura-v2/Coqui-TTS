@@ -1,6 +1,6 @@
 {
     "model": "vits",
-    "run_name": "20220511_pro_averuni",
+    "run_name": "20220609_pro_studio_light",
     "run_description": "",
     "epochs": 1000,
     "batch_size": 52,
@@ -14,9 +14,9 @@
     "print_step": 25,
     "plot_step": 100,
     "model_param_stats": false,
-    "project_name": "yourTTS_nishimura",
+    "project_name": "yourTTS_vnklkjeandaf93fq3",
     "log_model_step": 2500,
-    "wandb_entity": null,
+    "wandb_entity": "yuto_nishimura",
     "save_step": 2500,
     "checkpoint": true,
     "keep_all_best": false,
@@ -25,7 +25,7 @@
     "num_eval_loader_workers": 4,
     "use_noise_augment": false,
     "use_language_weighted_sampler": true,
-    "output_path": "checkpoints/20220511_pro_averuni/",
+    "output_path": "checkpoints/20220609_pro_studio_light/",
     "distributed_backend": "nccl",
     "distributed_url": "tcp://localhost:54321",
     "audio": {
@@ -90,10 +90,7 @@
             "name": "coefont_cloud_all",
             "path": "../dataset/Coefont-Cloud-16khz/",
             "meta_file_train": null,
-            "ununsed_speakers": [
-                "morikawa",
-                "fujisaki"
-            ],
+            "ununsed_speakers": ["morikawa", "fujisaki"],
             "language": "ja-jp",
             "meta_file_val": null,
             "meta_file_attn_mask": ""
@@ -102,22 +99,7 @@
             "name": "coefont_cloud_all",
             "path": "../dataset/Coefont-Cloud-Pro-16khz/",
             "meta_file_train": null,
-            "ununsed_speakers": [
-                "2f26f1b2-4758-4ead-9c7b-42a438238ef7",
-                "4dc53189-840f-42f7-8827-9898ce468642",
-                "9eaa0a8f-16ca-4fa7-838f-7cfcd6804543",
-                "272af3ed-71c9-4e83-b66f-5ff22c08fae6",
-                "684e3b78-fd6b-4fd1-b943-e82c4068c47a",
-                "0755a9ad-d7dc-4dd2-99d0-0590b90f2c60",
-                "2726f8ee-141c-4df0-8867-73e386359aee",
-                "b99f765c-4e63-4fb7-b53f-1deb5447555e",
-                "c0b5de35-7d82-4045-93e6-f7e215e309b4",
-                "c3c5626c-8714-4615-a5bc-8f4ab5ef4ebe",
-                "c5375a07-e6b9-437b-a4ee-cb6439a0d95c",
-                "c1248860-738f-4c37-bb2e-6daa1792997a",
-                "d6740fe4-cf25-4fa4-8b06-2735edc86e97",
-                "f5cc38db-6096-438a-8877-c7651a1894ec"
-            ],
+            "ununsed_speakers": null,
             "language": "ja-jp",
             "meta_file_val": null,
             "meta_file_attn_mask": ""
@@ -126,20 +108,14 @@
             "name": "coefont_studio",
             "path": "../dataset/Coefont-Studio-16khz/",
             "meta_file_train": null,
-            "ununsed_speakers": [
-                "averuni_ikari",
-                "averuni_kanashimi",
-                "averuni_normal",
-                "averuni_tanoshimi",
-                "averuni_yorokobi"
-            ],
+            "ununsed_speakers": null,
             "language": "ja-jp",
             "meta_file_val": null,
             "meta_file_attn_mask": ""
         },
         {
             "name": "libri_tts",
-            "path": "../dataset/LibriTTS-16khz",
+            "path": "../dataset/LibriTTS-16khz/train-clean-100",
             "meta_file_train": null,
             "ununsed_speakers": null,
             "language": "en",
@@ -160,7 +136,7 @@
     "lr_scheduler_params": null,
     "test_sentences": [
         [
-            "\u30de\u30b1\u30eb\u30ef\u30b1\u30cb\u30ef\u30a4\u30ab\u30cd\u30fc\u30e8\u3002",
+            "マケルワケニワイカネーヨ。",
             "1222111122221",
             "morikawa",
             null,
@@ -174,7 +150,7 @@
             "en"
         ],
         [
-            "\u30de\u30b1\u30eb\u30ef\u30b1\u30cb\u30ef\u30a4\u30ab\u30cd\u30fc\u30e8\u3002",
+            "マケルワケニワイカネーヨ。",
             "1222111122221",
             "averuni_ikari",
             null,
@@ -188,7 +164,7 @@
             "en"
         ],
         [
-            "\u30de\u30b1\u30eb\u30ef\u30b1\u30cb\u30ef\u30a4\u30ab\u30cd\u30fc\u30e8\u3002",
+            "マケルワケニワイカネーヨ。",
             "1222111122221",
             "averuni_kanashimi",
             null,
@@ -202,7 +178,7 @@
             "en"
         ],
         [
-            "\u30de\u30b1\u30eb\u30ef\u30b1\u30cb\u30ef\u30a4\u30ab\u30cd\u30fc\u30e8\u3002",
+            "マケルワケニワイカネーヨ。",
             "1222111122221",
             "averuni_normal",
             null,
@@ -216,7 +192,7 @@
             "en"
         ],
         [
-            "\u30de\u30b1\u30eb\u30ef\u30b1\u30cb\u30ef\u30a4\u30ab\u30cd\u30fc\u30e8\u3002",
+            "マケルワケニワイカネーヨ。",
             "1222111122221",
             "averuni_tanoshimi",
             null,
@@ -230,7 +206,7 @@
             "en"
         ],
         [
-            "\u30de\u30b1\u30eb\u30ef\u30b1\u30cb\u30ef\u30a4\u30ab\u30cd\u30fc\u30e8\u3002",
+            "マケルワケニワイカネーヨ。",
             "1222111122221",
             "averuni_yorokobi",
             null,
@@ -244,7 +220,147 @@
             "en"
         ],
         [
-            "\u30de\u30b1\u30eb\u30ef\u30b1\u30cb\u30ef\u30a4\u30ab\u30cd\u30fc\u30e8\u3002",
+            "マケルワケニワイカネーヨ。",
+            "1222111122221",
+            "allial_ikari",
+            null,
+            "ja-jp"
+        ],
+        [
+            "The clock struck twelve, and it still rained.",
+            null,
+            "allial_ikari",
+            null,
+            "en"
+        ],
+        [
+            "マケルワケニワイカネーヨ。",
+            "1222111122221",
+            "allial_kanashimi",
+            null,
+            "ja-jp"
+        ],
+        [
+            "The clock struck twelve, and it still rained.",
+            null,
+            "allial_kanashimi",
+            null,
+            "en"
+        ],
+        [
+            "マケルワケニワイカネーヨ。",
+            "1222111122221",
+            "allial_normal",
+            null,
+            "ja-jp"
+        ],
+        [
+            "The clock struck twelve, and it still rained.",
+            null,
+            "allial_normal",
+            null,
+            "en"
+        ],
+        [
+            "マケルワケニワイカネーヨ。",
+            "1222111122221",
+            "allial_tanoshimi",
+            null,
+            "ja-jp"
+        ],
+        [
+            "The clock struck twelve, and it still rained.",
+            null,
+            "allial_tanoshimi",
+            null,
+            "en"
+        ],
+        [
+            "マケルワケニワイカネーヨ。",
+            "1222111122221",
+            "allial_yorokobi",
+            null,
+            "ja-jp"
+        ],
+        [
+            "The clock struck twelve, and it still rained.",
+            null,
+            "allial_yorokobi",
+            null,
+            "en"
+        ],
+        [
+            "マケルワケニワイカネーヨ。",
+            "1222111122221",
+            "millial_ikari",
+            null,
+            "ja-jp"
+        ],
+        [
+            "The clock struck twelve, and it still rained.",
+            null,
+            "millial_ikari",
+            null,
+            "en"
+        ],
+        [
+            "マケルワケニワイカネーヨ。",
+            "1222111122221",
+            "millial_kanashimi",
+            null,
+            "ja-jp"
+        ],
+        [
+            "The clock struck twelve, and it still rained.",
+            null,
+            "millial_kanashimi",
+            null,
+            "en"
+        ],
+        [
+            "マケルワケニワイカネーヨ。",
+            "1222111122221",
+            "millial_normal",
+            null,
+            "ja-jp"
+        ],
+        [
+            "The clock struck twelve, and it still rained.",
+            null,
+            "millial_normal",
+            null,
+            "en"
+        ],
+        [
+            "マケルワケニワイカネーヨ。",
+            "1222111122221",
+            "millial_tanoshimi",
+            null,
+            "ja-jp"
+        ],
+        [
+            "The clock struck twelve, and it still rained.",
+            null,
+            "millial_tanoshimi",
+            null,
+            "en"
+        ],
+        [
+            "マケルワケニワイカネーヨ。",
+            "1222111122221",
+            "millial_yorokobi",
+            null,
+            "ja-jp"
+        ],
+        [
+            "The clock struck twelve, and it still rained.",
+            null,
+            "millial_yorokobi",
+            null,
+            "en"
+        ],
+        [
+            "マケルワケニワイカネーヨ。",
             "1222111122221",
             "2f26f1b2-4758-4ead-9c7b-42a438238ef7",
             null,
@@ -262,7 +378,7 @@
     "use_d_vector_file": false,
     "d_vector_dim": 512,
     "model_args": {
-        "num_chars": 64,
+        "num_chars": 165,
         "out_channels": 513,
         "spec_segment_size": 62,
         "hidden_channels": 192,
@@ -278,7 +394,7 @@
         "kernel_size_flow": 5,
         "dilation_rate_flow": 1,
         "num_layers_flow": 4,
-        "resblock_type_decoder": 2,
+        "resblock_type_decoder": "2",
         "resblock_kernel_sizes_decoder": [
             3,
             7,
@@ -317,14 +433,14 @@
         "use_sdp": true,
         "noise_scale": 1.0,
         "inference_noise_scale": 0.3,
-        "length_scale": 1,
+        "length_scale": 1.5,
         "noise_scale_dp": 0.6,
         "inference_noise_scale_dp": 0.3,
         "max_inference_len": null,
         "init_discriminator": true,
         "use_spectral_norm_disriminator": false,
         "use_speaker_embedding": true,
-        "num_speakers": 1172,
+        "num_speakers": 1244,
         "speakers_file": null,
         "d_vector_file": null,
         "speaker_embedding_channels": 512,
@@ -335,7 +451,7 @@
         "embedded_language_dim": 4,
         "num_languages": 2,
         "use_accent_embedding": true,
-        "num_accents": 8,
+        "num_accents": 3,
         "embedded_accent_dim": 128,
         "use_speaker_encoder_as_loss": false,
         "speaker_encoder_config_path": null,
