@@ -31,4 +31,5 @@
     - jobID: 10004969
 - 20220609_pro_studio_light
     - 森川さん+CoeFont studio+pro全て+LibriTTS/100のみ
-    - jobID: 10023177
+    - jobID: 10025410
+    - jobID: 10057143
