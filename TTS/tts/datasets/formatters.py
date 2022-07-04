@@ -188,7 +188,7 @@ def nancy(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     with open(txt_file, "r") as ttf:
         for line in ttf:
             utt_id = line.split()[1]
-            text = line[line.find('"') + 1 : line.rfind('"') - 1]
+            text = line[line.find('"') + 1: line.rfind('"') - 1]
             wav_file = os.path.join(root_path, "wavn", utt_id + ".wav")
             items.append([text, None, wav_file, speaker_name])
     return items
@@ -470,6 +470,7 @@ def coefont_studio(root_path, meta_files=None, ununsed_speakers=None):
                 items.append([raw_text, accent_info, str(wav_path), spk])
     return items
 
+
 def coefont_cloud_all(root_path, meta_files=None, ununsed_speakers=None):
     # ununsed_speakers を真逆の意味で使います
     # TODO: emotionガン無視なのでもしかしたら考慮いるかも
@@ -482,7 +483,7 @@ def coefont_cloud_all(root_path, meta_files=None, ununsed_speakers=None):
         with open(meta_file, "r") as f:
             json_data = json.load(f)
             all_text.update(json_data)
-    
+
     if ununsed_speakers is not None:
         _ununsed_speakers = []
         for _spk in ununsed_speakers:
@@ -513,5 +514,22 @@ def coefont_cloud_all(root_path, meta_files=None, ununsed_speakers=None):
                 accent_info = None
 
             items.append([raw_text, accent_info, str(wav_path), speaker_name])
-    
+
+    return items
+
+
+def coefont_english_7000(root_path, meta_files=None, ununsed_speakers=None):
+    # 今は台本のみ存在しているのでそれをちゃんと考慮して書く
+    items = []
+    root_path = Path(root_path)
+    meta_files = root_path.glob("**/*.json")
+    all_text = {}
+    for meta_file in meta_files:
+        with open(meta_file, "r") as f:
+            json_data = json.load(f)
+            all_text.update(json_data)
+
+    for key, value in all_text.items():
+        # 一時的に wav 名は 「key.wav」, speaker name は 「any」 にする。
+        items.append([value["text"], None, key+".wav", "any"])
     return items

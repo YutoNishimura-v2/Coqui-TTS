@@ -35,7 +35,43 @@ model_name: str = "vits"
 datasets: List[Dict[str, str]] = [
     {
         "name": "libri_tts",
-        "path": "../dataset/LibriTTS-16khz/",
+        "path": "/mnt/nas/disk1_4tb/dataset/LibriTTS-16khz/",
+        "meta_file_train": None,
+        "ununsed_speakers": None,
+        "language": "en",
+        "meta_file_val": None,
+        "meta_file_attn_mask": None,
+    },
+    {
+        "name": "ljspeech",
+        "path": "/mnt/nas/disk1_4tb/dataset/LJSpeech-1.1/",
+        "meta_file_train": "metadata.csv",
+        "ununsed_speakers": None,
+        "language": "en",
+        "meta_file_val": None,
+        "meta_file_attn_mask": None,
+    },
+    {
+        "name": "vctk",
+        "path": "/mnt/nas/disk1_4tb/dataset/VCTK-Corpus/",
+        "meta_file_train": None,
+        "ununsed_speakers": None,
+        "language": "en",
+        "meta_file_val": None,
+        "meta_file_attn_mask": None,
+    },
+    {
+        "name": "common_voice",
+        "path": "/mnt/nas/disk1_4tb/dataset/cv-corpus-9.0-2022-04-27/en/",
+        "meta_file_train": "train.tsv",
+        "ununsed_speakers": None,
+        "language": "en",
+        "meta_file_val": "validated.tsv",
+        "meta_file_attn_mask": None,
+    },
+    {
+        "name": "coefont_english_7000",
+        "path": "/mnt/nas/disk1_4tb/dataset/transcripts/",
         "meta_file_train": None,
         "ununsed_speakers": None,
         "language": "en",
@@ -43,7 +79,13 @@ datasets: List[Dict[str, str]] = [
         "meta_file_attn_mask": None,
     }
 ]
-use_speakers: Optional[List[str]] = None  # None で全員で出力する
+# use_speakers: Optional[List[str]] = [
+#     '0755a9ad-d7dc-4dd2-99d0-0590b90f2c60', '0770613f-0a0c-49c1-94b8-80823793675a', '0e28fe50-fe7f-4bc6-a043-8a49f9d0a583', '2726f8ee-141c-4df0-8867-73e386359aee', '272af3ed-71c9-4e83-b66f-5ff22c08fae6', '28754739-f751-4a73-9d69-4066db35ee68', '2b802cd1-868f-4391-9129-96335d719764', '2f26f1b2-4758-4ead-9c7b-42a438238ef7', '381d2d80-ddfe-4a44-8572-e94870dfc329', '3d86ade1-c095-4d53-ab3c-d4264b020e06', '44d9280e-0d0e-4fcf-813c-b1851cf17cef', '45321ffe-7838-4d71-bdf9-153310bc959c', '4dc53189-840f-42f7-8827-9898ce468642', '4ed445d5-f04c-4f5b-86f4-15b230032db4', '5bf09952-6b1c-454d-bbdc-3bf2c59698fb', '66540e9e-197b-4b20-9f11-249feb2cfe04', '684e3b78-fd6b-4fd1-b943-e82c4068c47a', '6c48173c-cdc7-4e13-a52d-357425666a05', '718039cb-26b9-4686-8b88-e09f7ae4a7e8', '7450f1f6-8043-4b24-b52c-cce389662d55', '7519b285-eda9-4555-bc7c-09a6983d830f', '806b2526-2ab1-479b-9e6e-36202198752a', '858907a7-8f02-427c-bd6a-b7d4650abd24', '8f034d8c-954e-4cdb-a219-e9b4367048e1', '958cebba-b772-4e31-b697-218d792cacb6', '96ba9521-7657-413b-8786-eb1205775a94', '9a7ffd0f-5968-456c-a5be-3efb1600e4db', '9eaa0a8f-16ca-4fa7-838f-7cfcd6804543',
+#     'a260794a-6653-47b1-b780-60453a2b8762', 'a4dcb6a7-0704-40ac-a18d-4366e9c9c230', 'a6c02557-80f8-4b47-aa8e-ffe13b5e16e8',
+#     'allial_ikari', 'allial_kanashimi', 'allial_normal', 'allial_tanoshimi', 'allial_yorokobi', 'averuni_ikari', 'averuni_kanashimi', 'averuni_normal', 'averuni_tanoshimi', 'averuni_yorokobi',
+#     'b0d29da7-412a-4fa4-ad2c-1a49ec70fb50', 'b1aee780-2e71-4af7-9660-ac3e4af6df48', 'b1cd60fa-e013-410a-8fe7-1c89773c2f88', 'b99f765c-4e63-4fb7-b53f-1deb5447555e', 'bcc347fa-abff-461f-abab-b69d6140903a', 'c0b5de35-7d82-4045-93e6-f7e215e309b4', 'c1248860-738f-4c37-bb2e-6daa1792997a', 'c1e18405-2e02-412c-b3f4-86e4b27b9329', 'c2b47a6d-f636-47e9-9184-5fa59754dd75', 'c3c5626c-8714-4615-a5bc-8f4ab5ef4ebe', 'c5375a07-e6b9-437b-a4ee-cb6439a0d95c', 'c589499f-d5aa-4ca4-8c4a-1ac315554ae9', 'cad9f33f-7d70-425f-bf62-5d220d94c970', 'd315c76f-1028-49e6-ba3a-daa2927912f7', 'd6740fe4-cf25-4fa4-8b06-2735edc86e97', 'e0aefd54-8e45-473d-b88b-96ec64b99c71', 'e0ec927a-5ce9-4a70-94cd-e64226bc94a0', 'e80cc248-bd23-4ee3-af62-8740342262ec', 'ec5a075c-3f7f-4992-b3b0-83854486a157', 'edd6cc3e-c2b1-451e-bea0-ac6954e99488', 'f1ab8776-ea64-45cd-b815-2d5e2b91de86', 'f38d122c-6bec-4eb5-bde1-303c2bb627ef', 'f4acd312-41cb-4ea0-8999-818315c4e48b', 'f5cc38db-6096-438a-8877-c7651a1894ec', 'f7e6457e-bffe-4deb-ab94-f439bf2c6737', 'ff255f62-fded-4879-8808-6bde5260b48f',
+#     'fujisaki', 'millial_ikari', 'millial_kanashimi', 'millial_normal', 'millial_tanoshimi', 'millial_yorokobi', 'morikawa']
+use_speakers: Optional[List[str]] = ['averuni_normal', 'fujisaki', 'morikawa']
 use_languages: Optional[List[str]] = ["en"]  # None で全ての言語を出力する
 n_jobs = 10
 ###################################################
@@ -120,24 +162,35 @@ for speaker in tqdm(speakers):
         save_text_data[speaker][train_eval] = {}
 
         output_base.mkdir(parents=True, exist_ok=True)
+        print("total item num: ", len(items))
+        # with ProcessPoolExecutor(n_jobs) as executor:
+        #     futures = [
+        #         executor.submit(
+        #             _synthesis,
+        #             model, text, accent, speaker, lang, C, ap,
+        #             model.speaker_manager.speaker_ids, 
+        #             model.language_manager.language_id_mapping,
+        #             use_languages, _id
+        #         )
+        #         for _id, (text, accent, _, _, lang) in enumerate(items)
+        #     ]
+        #     for future in tqdm(futures, leave=False):
+        #         text, wav, _id = future.result()
+        #         out_path = os.path.join(output_base, str(_id)+".wav")
+        #         ap.save_wav(wav, out_path)
+        #         save_text_data[speaker][train_eval][_id] = text
+        _id = 0
+        for text, accent, _, _, lang in tqdm(items, leave=False):
+            text, wav, _id = _synthesis(
+                model, text, accent, speaker, lang, C, ap,
+                model.speaker_manager.speaker_ids, 
+                model.language_manager.language_id_mapping,
+                use_languages, _id
+            )
+            out_path = os.path.join(output_base, str(_id)+".wav")
+            ap.save_wav(wav, out_path)
+            save_text_data[speaker][train_eval][_id] = text
+            _id += 1
 
-        with ProcessPoolExecutor(n_jobs) as executor:
-            futures = [
-                executor.submit(
-                    _synthesis,
-                    model, text, accent, speaker, lang, C, ap,
-                    model.speaker_manager.speaker_ids, 
-                    model.language_manager.language_id_mapping,
-                    use_languages, _id
-                )
-                for _id, (text, accent, _, _, lang) in enumerate(items)
-            ]
-            for future in tqdm(futures, leave=False):
-                text, wav, _id = future.result()
-                out_path = os.path.join(output_base, str(_id)+".wav")
-                ap.save_wav(wav, out_path)
-                save_text_data[speaker][train_eval][_id] = text
-
-
-with open(f"{OUT_PATH}/text_data.json", 'w') as f:
-    json.dump(save_text_data, f, indent=4)
+        with open(f"{OUT_PATH}/text_data.json", 'w') as f:
+            json.dump(save_text_data, f, indent=4)
