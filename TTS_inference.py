@@ -1,6 +1,8 @@
 # formatter を用いて，dataset のデータを推論して出力する．
 import json
+import logging
 import os
+import string
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -13,8 +15,6 @@ try:
     from TTS.utils.audio import AudioProcessor
 except:
     from TTS.utils.audio import AudioProcessor
-
-from concurrent.futures import ProcessPoolExecutor
 
 from tqdm import tqdm
 
@@ -88,6 +88,7 @@ datasets: List[Dict[str, str]] = [
 use_speakers: Optional[List[str]] = ['averuni_normal', 'fujisaki', 'morikawa']
 use_languages: Optional[List[str]] = ["en"]  # None で全ての言語を出力する
 n_jobs = 10
+overwrite = False
 ###################################################
 """dataset setup"""
 print("load dataset metadata...")
@@ -125,6 +126,18 @@ if USE_CUDA:
     model = model.cuda()
 
 """inference"""
+# logger の設定
+logger = logging.getLogger("for error detection")
+logger.setLevel(logging.DEBUG)
+handler1 = logging.StreamHandler()
+handler1.setFormatter(logging.Formatter("%(asctime)s %(levelname)8s %(message)s"))
+handler2 = logging.FileHandler(filename=Path(OUT_PATH) / "synthesis_errors.log")
+handler2.setLevel(logging.WARN)
+handler2.setFormatter(logging.Formatter("%(asctime)s %(levelname)8s %(message)s"))
+logger.addHandler(handler1)
+logger.addHandler(handler2)
+
+
 def _synthesis(model, text, accent, speaker, lang, config, audio_processor, spk2id, lang2id, use_langages, _id):
     if use_langages is not None:
         if lang not in use_langages:
@@ -163,34 +176,30 @@ for speaker in tqdm(speakers):
 
         output_base.mkdir(parents=True, exist_ok=True)
         print("total item num: ", len(items))
-        # with ProcessPoolExecutor(n_jobs) as executor:
-        #     futures = [
-        #         executor.submit(
-        #             _synthesis,
-        #             model, text, accent, speaker, lang, C, ap,
-        #             model.speaker_manager.speaker_ids, 
-        #             model.language_manager.language_id_mapping,
-        #             use_languages, _id
-        #         )
-        #         for _id, (text, accent, _, _, lang) in enumerate(items)
-        #     ]
-        #     for future in tqdm(futures, leave=False):
-        #         text, wav, _id = future.result()
-        #         out_path = os.path.join(output_base, str(_id)+".wav")
-        #         ap.save_wav(wav, out_path)
-        #         save_text_data[speaker][train_eval][_id] = text
         _id = 0
         for text, accent, _, _, lang in tqdm(items, leave=False):
-            text, wav, _id = _synthesis(
-                model, text, accent, speaker, lang, C, ap,
-                model.speaker_manager.speaker_ids, 
-                model.language_manager.language_id_mapping,
-                use_languages, _id
-            )
-            out_path = os.path.join(output_base, str(_id)+".wav")
-            ap.save_wav(wav, out_path)
-            save_text_data[speaker][train_eval][_id] = text
+            file_name = text.replace(" ", "_")[:50]
+            file_name = file_name.translate(str.maketrans('', '', string.punctuation.replace('_', ''))) + '.wav'
+            out_path = output_base / (str(_id)+"_"+file_name)
             _id += 1
+            if overwrite is False and out_path.exists() is True:
+                continue
+            try:
+                text, wav, _id = _synthesis(
+                    model, text, accent, speaker, lang, C, ap,
+                    model.speaker_manager.speaker_ids,
+                    model.language_manager.language_id_mapping,
+                    use_languages, _id
+                )
+                ap.save_wav(wav, out_path)
+                save_text_data[speaker][train_eval][_id] = text
+            except:
+                logger.error("\nsynthesis error", exc_info=True)
+                logger.info(f"error text: {text}")
+                logger.info(f"error accent: {accent}")
+                logger.info(f"error speaker: {speaker}")
+                logger.info(f"error lang: {lang}")
+                logger.info(f"error id: {_id}")
 
-        with open(f"{OUT_PATH}/text_data.json", 'w') as f:
-            json.dump(save_text_data, f, indent=4)
+            with open(f"{OUT_PATH}/text_data.json", 'w') as f:
+                json.dump(save_text_data, f, indent=4)

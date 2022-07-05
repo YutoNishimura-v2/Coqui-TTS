@@ -7,6 +7,8 @@ datasets/
 *log.txt
 wandb/
 *.wav
+out/
+__pycache__/
 
 events.*
 
