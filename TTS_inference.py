@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import torch
-from this import d
 
 from TTS.tts.utils.synthesis import synthesis
 
@@ -16,15 +15,12 @@ try:
 except:
     from TTS.utils.audio import AudioProcessor
 
-import Levenshtein
-import speech_recognition as sr
 from tqdm import tqdm
 
 from TTS.config import load_config, register_config
 from TTS.tts.datasets import load_meta_data
 from TTS.tts.models import setup_model
 from TTS.tts.models.vits import *
-from TTS.tts.utils.text.cleaners import english_cleaners
 
 ###################################################
 OUT_PATH: str = 'out/'
@@ -161,21 +157,6 @@ def _synthesis(model, text, accent, speaker, lang, config, audio_processor, spk2
     ).values()
     return text, wav, _id
 
-
-# 同時にrecognition も行う.
-recognizer = sr.Recognizer()
-def speech2text(recognizer: sr.Recognizer, path: str) -> str:
-    with sr.AudioFile(path) as source:
-        audio = recognizer.record(source)
-    return recognizer.recognize_google(audio, language="en-US")
-
-
-def calc_score(predicted: str, target: str):
-    predicted = english_cleaners(predicted).replace(".", "").replace(",", "").replace("?", "").replace("!", "")
-    target = english_cleaners(target).replace(".", "").replace(",", "").replace("?", "").replace("!", "")
-    return Levenshtein.ratio(predicted, target)
-
-
 speakers = use_speakers
 if use_speakers is None:
     speakers = model.speaker_manager.speaker_ids.keys()
@@ -209,12 +190,7 @@ for speaker in tqdm(speakers):
                     use_languages, _id
                 )
                 ap.save_wav(wav, out_path)
-                save_text_data[speaker][train_eval][_id] = {}
-                save_text_data[speaker][train_eval][_id]["text"] = text
-                predicted = speech2text(recognizer, str(out_path))
-                save_text_data[speaker][train_eval][_id]["asr"] = predicted
-                score = calc_score(predicted, text)
-                save_text_data[speaker][train_eval][_id]["score"] = score
+                save_text_data[speaker][train_eval][_id] = text
 
             except KeyboardInterrupt:
                 exit(0)
