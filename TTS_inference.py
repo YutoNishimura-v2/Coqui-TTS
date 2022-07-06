@@ -196,11 +196,11 @@ for speaker in tqdm(speakers):
                 exit(0)
             except:
                 logger.error("\nsynthesis error", exc_info=True)
-                logger.info(f"error text: {text}")
-                logger.info(f"error accent: {accent}")
-                logger.info(f"error speaker: {speaker}")
-                logger.info(f"error lang: {lang}")
-                logger.info(f"error id: {_id}")
+                logger.warning(f"error text: {text}")
+                logger.warning(f"error accent: {accent}")
+                logger.warning(f"error speaker: {speaker}")
+                logger.warning(f"error lang: {lang}")
+                logger.warning(f"error id: {_id}")
 
         with open(f"{OUT_PATH}/text_data.json", 'w') as f:
             json.dump(save_text_data, f, indent=4)
