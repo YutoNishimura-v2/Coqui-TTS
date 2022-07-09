@@ -13,10 +13,10 @@ from tqdm import tqdm
 from TTS.tts.utils.text.cleaners import english_cleaners
 
 ###################################################
-json_path = ""
-wav_base  = ""
-output_path = ""
-n_jobs = 5
+json_path = "out/text_data.json"
+wav_base  = "out/"
+output_path = "out/"
+n_jobs = 10
 ###################################################
 
 recognizer = sr.Recognizer()
@@ -73,6 +73,7 @@ logger.addHandler(handler1)
 logger.addHandler(handler2)
 
 # 並列実行
+print("process started")
 result_data = {}
 with ProcessPoolExecutor(n_jobs) as executor:
     futures = [
