@@ -60,7 +60,7 @@ with open(json_path, "r") as f:
     text_data = json.load(f)
 
 # 音声パスリスト作成
-wav_pathes = list(Path(wav_base).glob("**/*.wav"))
+wav_pathes = Path(wav_base).glob("**/*.wav")
 
 # logger の用意
 logger = logging.getLogger("for error detection")
