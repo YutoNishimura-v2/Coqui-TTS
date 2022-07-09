@@ -23,7 +23,7 @@ from TTS.tts.models import setup_model
 from TTS.tts.models.vits import *
 
 ###################################################
-OUT_PATH: str = 'out/'
+OUT_PATH: str = 'out_test/'
 MODEL_PATH: str = 'checkpoints/20220609_pro_studio_light/20220609_pro_studio_light-June-22-2022_05+28PM-ef04a15e/checkpoint_265000.pth.tar'
 CONFIG_PATH: str = 'checkpoints/20220609_pro_studio_light/20220609_pro_studio_light-June-22-2022_05+28PM-ef04a15e/config.json'
 TTS_LANGUAGES: str = "checkpoints/20220609_pro_studio_light/20220609_pro_studio_light-June-22-2022_05+28PM-ef04a15e/language_ids.json"
@@ -32,42 +32,42 @@ TTS_SPEAKERS: str = "checkpoints/20220609_pro_studio_light/20220609_pro_studio_l
 model_name: str = "vits"
 # config と同じ定義の仕方をする．但し，null ではなく None を使う．
 datasets: List[Dict[str, str]] = [
-    {
-        "name": "libri_tts",
-        "path": "/mnt/nas/disk1_4tb/dataset/LibriTTS-16khz/",
-        "meta_file_train": None,
-        "ununsed_speakers": None,
-        "language": "en",
-        "meta_file_val": None,
-        "meta_file_attn_mask": None,
-    },
-    {
-        "name": "ljspeech",
-        "path": "/mnt/nas/disk1_4tb/dataset/LJSpeech-1.1/",
-        "meta_file_train": "metadata.csv",
-        "ununsed_speakers": None,
-        "language": "en",
-        "meta_file_val": None,
-        "meta_file_attn_mask": None,
-    },
-    {
-        "name": "vctk",
-        "path": "/mnt/nas/disk1_4tb/dataset/VCTK-Corpus/",
-        "meta_file_train": None,
-        "ununsed_speakers": None,
-        "language": "en",
-        "meta_file_val": None,
-        "meta_file_attn_mask": None,
-    },
-    {
-        "name": "common_voice",
-        "path": "/mnt/nas/disk1_4tb/dataset/cv-corpus-9.0-2022-04-27/en/",
-        "meta_file_train": "train.tsv",
-        "ununsed_speakers": None,
-        "language": "en",
-        "meta_file_val": "validated.tsv",
-        "meta_file_attn_mask": None,
-    },
+    # {
+    #     "name": "libri_tts",
+    #     "path": "/mnt/nas/disk1_4tb/dataset/LibriTTS-16khz/",
+    #     "meta_file_train": None,
+    #     "ununsed_speakers": None,
+    #     "language": "en",
+    #     "meta_file_val": None,
+    #     "meta_file_attn_mask": None,
+    # },
+    # {
+    #     "name": "ljspeech",
+    #     "path": "/mnt/nas/disk1_4tb/dataset/LJSpeech-1.1/",
+    #     "meta_file_train": "metadata.csv",
+    #     "ununsed_speakers": None,
+    #     "language": "en",
+    #     "meta_file_val": None,
+    #     "meta_file_attn_mask": None,
+    # },
+    # {
+    #     "name": "vctk",
+    #     "path": "/mnt/nas/disk1_4tb/dataset/VCTK-Corpus/",
+    #     "meta_file_train": None,
+    #     "ununsed_speakers": None,
+    #     "language": "en",
+    #     "meta_file_val": None,
+    #     "meta_file_attn_mask": None,
+    # },
+    # {
+    #     "name": "common_voice",
+    #     "path": "/mnt/nas/disk1_4tb/dataset/cv-corpus-9.0-2022-04-27/en/",
+    #     "meta_file_train": "train.tsv",
+    #     "ununsed_speakers": None,
+    #     "language": "en",
+    #     "meta_file_val": "validated.tsv",
+    #     "meta_file_attn_mask": None,
+    # },
     {
         "name": "coefont_english_7000",
         "path": "/mnt/nas/disk1_4tb/dataset/transcripts/",
@@ -84,7 +84,8 @@ datasets: List[Dict[str, str]] = [
 #     'allial_ikari', 'allial_kanashimi', 'allial_normal', 'allial_tanoshimi', 'allial_yorokobi', 'averuni_ikari', 'averuni_kanashimi', 'averuni_normal', 'averuni_tanoshimi', 'averuni_yorokobi',
 #     'b0d29da7-412a-4fa4-ad2c-1a49ec70fb50', 'b1aee780-2e71-4af7-9660-ac3e4af6df48', 'b1cd60fa-e013-410a-8fe7-1c89773c2f88', 'b99f765c-4e63-4fb7-b53f-1deb5447555e', 'bcc347fa-abff-461f-abab-b69d6140903a', 'c0b5de35-7d82-4045-93e6-f7e215e309b4', 'c1248860-738f-4c37-bb2e-6daa1792997a', 'c1e18405-2e02-412c-b3f4-86e4b27b9329', 'c2b47a6d-f636-47e9-9184-5fa59754dd75', 'c3c5626c-8714-4615-a5bc-8f4ab5ef4ebe', 'c5375a07-e6b9-437b-a4ee-cb6439a0d95c', 'c589499f-d5aa-4ca4-8c4a-1ac315554ae9', 'cad9f33f-7d70-425f-bf62-5d220d94c970', 'd315c76f-1028-49e6-ba3a-daa2927912f7', 'd6740fe4-cf25-4fa4-8b06-2735edc86e97', 'e0aefd54-8e45-473d-b88b-96ec64b99c71', 'e0ec927a-5ce9-4a70-94cd-e64226bc94a0', 'e80cc248-bd23-4ee3-af62-8740342262ec', 'ec5a075c-3f7f-4992-b3b0-83854486a157', 'edd6cc3e-c2b1-451e-bea0-ac6954e99488', 'f1ab8776-ea64-45cd-b815-2d5e2b91de86', 'f38d122c-6bec-4eb5-bde1-303c2bb627ef', 'f4acd312-41cb-4ea0-8999-818315c4e48b', 'f5cc38db-6096-438a-8877-c7651a1894ec', 'f7e6457e-bffe-4deb-ab94-f439bf2c6737', 'ff255f62-fded-4879-8808-6bde5260b48f',
 #     'fujisaki', 'millial_ikari', 'millial_kanashimi', 'millial_normal', 'millial_tanoshimi', 'millial_yorokobi', 'morikawa']
-use_speakers: Optional[List[str]] = ['averuni_normal', 'fujisaki', 'morikawa']
+use_speakers: Optional[List[str]] = ['averuni_normal']
+# use_speakers: Optional[List[str]] = ['averuni_normal', 'fujisaki', 'morikawa']
 use_languages: Optional[List[str]] = ["en"]  # None で全ての言語を出力する
 n_jobs = 10
 overwrite = True
@@ -179,7 +180,6 @@ for speaker in tqdm(speakers):
             file_name = text.replace(" ", "_")[:50]
             file_name = file_name.translate(str.maketrans('', '', string.punctuation.replace('_', ''))) + '.wav'
             out_path = output_base / (str(_id)+"_"+file_name)
-            _id += 1
             if overwrite is False and out_path.exists() is True:
                 continue
             try:
@@ -201,6 +201,7 @@ for speaker in tqdm(speakers):
                 logger.warning(f"error speaker: {speaker}")
                 logger.warning(f"error lang: {lang}")
                 logger.warning(f"error id: {_id}")
+            _id += 1
 
         with open(f"{OUT_PATH}/text_data.json", 'w') as f:
             json.dump(save_text_data, f, indent=4)

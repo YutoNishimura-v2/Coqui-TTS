@@ -13,7 +13,7 @@ from tqdm import tqdm
 from TTS.tts.utils.text.cleaners import english_cleaners
 
 ###################################################
-json_path = "out/text_data.json"
+json_path = "out/text_data_id_changed.json"
 wav_base  = "out/"
 output_path = "out/"
 n_jobs = 20
