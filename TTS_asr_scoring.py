@@ -16,7 +16,7 @@ from TTS.tts.utils.text.cleaners import english_cleaners
 json_path = "out/text_data.json"
 wav_base  = "out/"
 output_path = "out/"
-n_jobs = 10
+n_jobs = 20
 ###################################################
 
 recognizer = sr.Recognizer()
@@ -51,6 +51,7 @@ def asr_and_scoring(path: Path, recognizer: sr.Recognizer, target_text: str, log
         logger.error("\nasr error", exc_info=True)
         logger.info(f"error path: {str(path)}")
         logger.info(f"error target_text: {target_text}")
+        return None, None, None
     return path, predicted, score
 
 
@@ -59,7 +60,7 @@ with open(json_path, "r") as f:
     text_data = json.load(f)
 
 # 音声パスリスト作成
-wav_pathes = Path(wav_base).glob("**/*.wav")
+wav_pathes = list(Path(wav_base).glob("**/*.wav"))
 
 # logger の用意
 logger = logging.getLogger("for error detection")
@@ -88,6 +89,8 @@ with ProcessPoolExecutor(n_jobs) as executor:
     ]
     for future in tqdm(futures):
         path, predicted, score = future.result()
+        if predicted is None:
+            continue
         target, spk, train_dev, _id = get_text_from_path(path, text_data, True)
 
         if spk not in result_data.keys():
@@ -98,6 +101,27 @@ with ProcessPoolExecutor(n_jobs) as executor:
         result_data[spk][train_dev][_id]["target"] = target
         result_data[spk][train_dev][_id]["predicted"] = predicted
         result_data[spk][train_dev][_id]["score"] = score
+
+# for wav_path in tqdm(wav_pathes):
+#     path, predicted, score = asr_and_scoring(
+#         wav_path,
+#         recognizer,
+#         get_text_from_path(wav_path, text_data),
+#         logger,
+#     )
+#     if predicted is None:
+#         continue
+#     target, spk, train_dev, _id = get_text_from_path(path, text_data, True)
+
+#     if spk not in result_data.keys():
+#         result_data[spk] = {}
+#     if train_dev not in result_data[spk].keys():
+#         result_data[spk][train_dev] = {}
+#     result_data[spk][train_dev][_id] = {}
+#     result_data[spk][train_dev][_id]["target"] = target
+#     result_data[spk][train_dev][_id]["predicted"] = predicted
+#     result_data[spk][train_dev][_id]["score"] = score
+
 
 with open(f"{output_path}/results.json", 'w') as f:
     json.dump(result_data, f, indent=4)
