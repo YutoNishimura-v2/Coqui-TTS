@@ -74,6 +74,10 @@ logger.addHandler(handler1)
 logger.addHandler(handler2)
 
 # 並列実行
+texts = []
+for wav_path in wav_pathes:
+    texts.append(get_text_from_path(wav_path, text_data))
+
 print("process started")
 result_data = {}
 with ProcessPoolExecutor(n_jobs) as executor:
@@ -82,10 +86,10 @@ with ProcessPoolExecutor(n_jobs) as executor:
             asr_and_scoring,
             wav_path,
             recognizer,
-            get_text_from_path(wav_path, text_data),
+            text,
             logger,
         )
-        for wav_path in wav_pathes
+        for wav_path, text in zip(wav_pathes, texts)
     ]
     for future in tqdm(futures):
         path, predicted, score = future.result()
